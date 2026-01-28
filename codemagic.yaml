@@ -38,6 +38,47 @@ workflows:
           - user@example.com
         notify:
           success: true
+          failure: true
+workflows:
+  default-workflow:
+    name: Default Workflow
+    instance_type: mac_mini_m2
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+    triggering:
+      events:
+        - push
+        - pull_request
+    scripts:
+      - name: Pre-build script
+        script: |
+          # Clean up broken build-tools directory
+          rm -rf /usr/local/share/android-sdk/build-tools/35.0.0
+          rm -rf /usr/local/share/android-sdk/.temp/
+          
+          # Install missing build-tools using sdkmanager
+          yes | /usr/local/share/android-sdk/cmdline-tools/latest/bin/sdkmanager "build-tools;35.0.0"
+          
+          # Create GoogleService-Info.plist from environment variable
+          echo "$GOOGLE_SERVICE_INFO_PLIST" > $CM_BUILD_DIR/ios/Runner/GoogleService-Info.plist
+          
+          echo "Pre-build setup completed successfully"
+      - name: Build
+        script: |
+          flutter build apk --release
+          flutter build ios --release
+    artifacts:
+      - build/**/outputs/**/*.apk
+      - build/**/outputs/**/*.aab
+      - build/ios/ipa/*.ipa
+    publishing:
+      email:
+        recipients:
+          - user@example.com
+        notify:
+          success: true
           failure: trueworkflows:
   default-workflow:
     name: Default Workflow
