@@ -44,6 +44,7 @@ Future<void> createParentCodeAndRegistration() async {
     code: 'VELI2024',
     createdAt: DateTime.now(),
     isActive: true,
+    schoolId: 'test_school',
   );
   await store.saveParentCode(parentCode);
   
@@ -53,6 +54,7 @@ Future<void> createParentCodeAndRegistration() async {
     parentName: 'Ayşe Yılmaz',
     studentName: 'Can Yılmaz',
     photoConsent: true,
+    className: 'Papatya Sınıfı',
     codeUsed: 'VELI2024',
     status: RegistrationStatus.approved,
     createdAt: DateTime.now(),

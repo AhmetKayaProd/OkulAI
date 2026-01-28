@@ -159,9 +159,9 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
           Navigator.pushNamed(context, '/teacher/homework-management');
         }),
         _buildActionItem(Icons.camera_alt_outlined, 'Paylaş', Colors.orange, () {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const TeacherShareScreen()));
+          Navigator.pushNamed(context, '/teacher/share');
         }),
-        _buildActionItem(Icons.more_horiz_rounded, 'Daha', Colors.slate, () {}),
+        _buildActionItem(Icons.more_horiz_rounded, 'Daha', Colors.grey, () {}),
       ],
     );
   }
@@ -257,7 +257,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
     return ModernCard(
       color: AppTokens.warningLight.withOpacity(0.1),
       border: const BorderSide(color: AppTokens.warningLight, width: 0.5),
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ParentApprovalsScreen())),
+      onTap: () => Navigator.pushNamed(context, '/teacher/parent-approvals'),
       child: Row(
         children: [
           const Icon(Icons.notification_important_rounded, color: AppTokens.warningLight),
@@ -302,7 +302,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                   color: AppTokens.backgroundLight,
                   shape: BoxShape.circle,
                 ),
-                child: Icon(_getActivityIcon(activity.type), size: 18, color: AppTokens.primaryLight),
+                child: Icon(_getActivityIcon(activity.type.name), size: 18, color: AppTokens.primaryLight),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -310,7 +310,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      activity.title,
+                      activity.title ?? 'Aktivite',
                       style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                     ),
                     Text(

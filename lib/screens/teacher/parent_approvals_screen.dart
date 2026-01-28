@@ -97,7 +97,7 @@ class _TeacherParentApprovalsScreenState extends State<TeacherParentApprovalsScr
                               await Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => TeacherParentApprovalDetailScreen(registration: registration),
+                                  builder: (_) => TeacherParentApprovalDetailScreen(registrationId: registration.id),
                                 ),
                               );
                               _loadData();

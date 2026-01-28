@@ -26,6 +26,7 @@ class ActivityEvent {
   final String? classId;
   final int createdAt; // epoch milliseconds
   final String description;
+  final String? title;
 
   const ActivityEvent({
     required this.id,
@@ -35,6 +36,7 @@ class ActivityEvent {
     this.classId,
     required this.createdAt,
     required this.description,
+    this.title,
   });
 
   /// JSON'dan model oluştur
@@ -51,6 +53,7 @@ class ActivityEvent {
       classId: json['classId'] as String?,
       createdAt: json['createdAt'] as int,
       description: json['description'] as String,
+      title: json['title'] as String?,
     );
   }
 
@@ -64,6 +67,7 @@ class ActivityEvent {
       'classId': classId,
       'createdAt': createdAt,
       'description': description,
+      'title': title,
     };
   }
 }
