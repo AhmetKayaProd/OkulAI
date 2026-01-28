@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "140244239573",
+    "project_id": "okulavatar",
+    "storage_bucket": "okulavatar.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:140244239573:android:7d08c0a990f57174b48e5c",
+        "android_client_info": {
+          "package_name": "com.example.mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC_EvYSRzTk1Yvfjyxgla-qc-9vtS5mVU4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:140244239573:android:a79e5ccf7d43a8dfb48e5c",
+        "android_client_info": {
+          "package_name": "com.example.okulavatar"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC_EvYSRzTk1Yvfjyxgla-qc-9vtS5mVU4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

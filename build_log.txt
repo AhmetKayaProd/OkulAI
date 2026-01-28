@@ -1,0 +1,110 @@
+flutter : Package shared_preferences:windows refe
+rences shared_preferences_windows:windows as the 
+default plugin, but the package does not exist, o
+r is not a plugin package.
+At line:1 char:1
++ flutter build apk --debug 2>&1 | Out-File "buil
+d_log.txt" -Encoding A ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Pac 
+   kage shared_...plugin package.:String) [], R  
+  emoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Ask the maintainers of shared_preferences to eith
+er avoid referencing a default implementation via
+ `platforms: windows: default_package: shared_pre
+ferences_windows` or create a plugin named shared
+_preferences_windows.
+
+Package shared_preferences:windows references sha
+red_preferences_windows:windows as the default pl
+ugin, but the package does not exist, or is not a
+ plugin package.
+Ask the maintainers of shared_preferences to eith
+er avoid referencing a default implementation via
+ `platforms: windows: default_package: shared_pre
+ferences_windows` or create a plugin named shared
+_preferences_windows.
+
+Package shared_preferences:windows references sha
+red_preferences_windows:windows as the default pl
+ugin, but the package does not exist, or is not a
+ plugin package.
+Ask the maintainers of shared_preferences to eith
+er avoid referencing a default implementation via
+ `platforms: windows: default_package: shared_pre
+ferences_windows` or create a plugin named shared
+_preferences_windows.
+
+Package shared_preferences:windows references sha
+red_preferences_windows:windows as the default pl
+ugin, but the package does not exist, or is not a
+ plugin package.
+Ask the maintainers of shared_preferences to eith
+er avoid referencing a default implementation via
+ `platforms: windows: default_package: shared_pre
+ferences_windows` or create a plugin named shared
+_preferences_windows.
+
+Running Gradle task 'assembleDebug'...                          
+lib/screens/teacher/homework_management_screen.da
+rt:267:57: Error: The getter 'finalScore' isn't d
+efined for the type 'HomeworkSubmission'.
+ - 'HomeworkSubmission' is from 'package:kresai/m
+odels/homework_submission.dart' ('lib/models/home
+work_submission.dart').
+Try correcting the name to the name of an existin
+g getter, or defining a getter or field named 'fi
+nalScore'.
+              final graded = submissions.where((s
+) => s.finalScore != null).length;
+                                                 
+       ^^^^^^^^^^
+lib/screens/teacher/homework_management_screen.da
+rt:270:39: Error: The getter 'finalScore' isn't d
+efined for the type 'HomeworkSubmission'.
+ - 'HomeworkSubmission' is from 'package:kresai/m
+odels/homework_submission.dart' ('lib/models/home
+work_submission.dart').
+Try correcting the name to the name of an existin
+g getter, or defining a getter or field named 'fi
+nalScore'.
+                      .where((s) => s.finalScore 
+!= null)
+                                      ^^^^^^^^^^
+lib/screens/teacher/homework_management_screen.da
+rt:271:60: Error: The getter 'finalScore' isn't d
+efined for the type 'HomeworkSubmission'.
+ - 'HomeworkSubmission' is from 'package:kresai/m
+odels/homework_submission.dart' ('lib/models/home
+work_submission.dart').
+Try correcting the name to the name of an existin
+g getter, or defining a getter or field named 'fi
+nalScore'.
+                      .fold<double>(0, (sum, s) =
+> sum + s.finalScore!) / graded)
+                                                 
+          ^^^^^^^^^^
+Target kernel_snapshot_program failed: Exception
+
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileFlutterBui
+ldDebug'.
+> Process 'command 'C:\flutter\bin\flutter.bat'' 
+finished with non-zero exit value 1
+
+* Try:
+> Run with --stacktrace option to get the stack t
+race.
+> Run with --info or --debug option to get more l
+og output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 3s
+Running Gradle task 'assembleDebug'...                              3,9s
+Gradle task assembleDebug failed with exit code 1
