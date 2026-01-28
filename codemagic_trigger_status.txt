@@ -1,0 +1,37 @@
+Codemagic Build Trigger Ayarları - OkulAI
+
+Tarih: 28 Ocak 2026, 21:50
+
+## Mevcut Durum
+
+❌ **Automatic build triggering:** KAPALI (Disabled)
+❌ **Trigger on push:** İşaretli DEĞİL
+❌ **Trigger on pull request update:** İşaretli DEĞİL  
+❌ **Trigger on tag creation:** İşaretli DEĞİL
+
+## Watched Branch Patterns
+
+- Pattern: * (tüm branch'ler)
+- Type: Include
+- Source: Source
+
+## Sonuç
+
+**HAYIR, şu anda otomatik build trigger KAPALI.**
+
+Main branch'e push yapıldığında otomatik build BAŞLATILMAZ.
+Her seferinde manuel olarak "Start new build" butonuna tıklamanız gerekiyor.
+
+## Önerilen Ayarlar
+
+Otomatik build için şu ayarları aktif etmeniz gerekiyor:
+
+1. ✅ "Automatic build triggering" checkbox'ını işaretleyin
+2. ✅ "Trigger on push" checkbox'ını işaretleyin
+3. ✅ Watched branch pattern olarak "main" ekleyin (veya * ile tüm branch'ler)
+4. ✅ "Save changes" butonuna tıklayın
+
+Bu ayarlar aktif edildiğinde:
+- main branch'e her push yapıldığında otomatik build başlar
+- TestFlight'a otomatik yükleme yapılır
+- Manuel build başlatmaya gerek kalmaz

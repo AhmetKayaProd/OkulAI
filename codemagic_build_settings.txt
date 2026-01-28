@@ -1,0 +1,17 @@
+Codemagic Build Settings (Current Status)
+
+Mode: Debug (NEEDS TO BE CHANGED TO RELEASE!)
+
+Build Arguments:
+- Android: --debug (with flavor: --flavor android-production -t lib/main_prod.dart)
+- iOS: --debug (with flavor: --flavor ios-production -t lib/main_prod.dart)
+- Web: --release
+
+Problem: iOS build is in Debug mode, which causes crashes on TestFlight.
+
+Solution: Change Mode from "Debug" to "Release"
+
+Steps:
+1. Click on "Release" radio button in the "Mode" section
+2. Save settings
+3. Start new build

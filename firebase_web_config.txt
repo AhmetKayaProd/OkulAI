@@ -1,0 +1,8 @@
+Firebase Web Configuration (from Firebase Console)
+
+apiKey: "AIzaSyDD82IvYsou_AXNTSNBRCAWCCIEmGEJhAk"
+authDomain: "okulai-dev.firebaseapp.com"
+projectId: "okulai-dev"
+storageBucket: "okulai-dev.firebasestorage.app"
+messagingSenderId: "117649531642"
+appId: "1:117649531642:web:e9832ca5df0182c06ddf43"
