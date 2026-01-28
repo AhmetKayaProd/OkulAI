@@ -32,6 +32,7 @@ class _TeacherParentCodeScreenState extends State<TeacherParentCodeScreen> {
     final newCode = InviteCode(
       type: InviteCodeType.parent,
       code: CodeService.generateCode(),
+      schoolId: 'teacher_school',
       isActive: true,
       createdAt: DateTime.now(),
     );

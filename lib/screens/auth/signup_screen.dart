@@ -1,14 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:kresai/services/auth_service.dart';
-import 'package:kresai/theme/tokens.dart';
+import '../../services/auth_service.dart';
+import '../../theme/tokens.dart';
+import '../../widgets/common/modern_button.dart';
 
-/// Signup Screen
-/// 
-/// Creates new user account with:
-/// - Full name
-/// - Email
-/// - Password (with confirmation)
-/// - Form validation
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
 
@@ -52,11 +46,11 @@ class _SignupScreenState extends State<SignupScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Hesap başarıyla oluşturuldu!'),
+            content: Text('✅ Hesap başarıyla oluşturuldu!'),
             backgroundColor: AppTokens.successLight,
+            behavior: SnackBarBehavior.floating,
           ),
         );
-        // Navigate back to login
         Navigator.of(context).pop();
       }
     } catch (e) {
@@ -65,6 +59,7 @@ class _SignupScreenState extends State<SignupScreen> {
           SnackBar(
             content: Text(e.toString()),
             backgroundColor: AppTokens.errorLight,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
@@ -78,11 +73,9 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTokens.surfaceLight,
+      backgroundColor: AppTokens.backgroundLight,
       appBar: AppBar(
         title: const Text('Hesap Oluştur'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -93,84 +86,49 @@ class _SignupScreenState extends State<SignupScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: AppTokens.spacing24),
-
-                // Name Field
                 TextFormField(
                   controller: _nameController,
                   textCapitalization: TextCapitalization.words,
-                  autofillHints: const [AutofillHints.name],
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: 'Ad Soyad',
-                    hintText: 'Ahmet Yılmaz',
-                    prefixIcon: const Icon(Icons.person_outlined),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(AppTokens.radiusLarge),
-                    ),
-                    filled: true,
-                    fillColor: Colors.white,
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Ad soyad gerekli';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: AppTokens.spacing16),
-
-                // Email Field
-                TextFormField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  autofillHints: const [AutofillHints.email],
-                  decoration: InputDecoration(
-                    labelText: 'Email',
-                    hintText: 'ornek@email.com',
-                    prefixIcon: const Icon(Icons.email_outlined),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(AppTokens.radiusLarge),
-                    ),
-                    filled: true,
-                    fillColor: Colors.white,
+                    prefixIcon: Icon(Icons.person_outline_rounded),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Email adresi gerekli';
-                    }
-                    if (!value.contains('@') || !value.contains('.')) {
-                      return 'Geçerli bir email adresi girin';
+                      return 'Ad Soyad gerekli';
                     }
                     return null;
                   },
                 ),
                 const SizedBox(height: AppTokens.spacing16),
-
-                // Password Field
+                TextFormField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: 'E-posta',
+                    prefixIcon: Icon(Icons.email_outlined),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'E-posta gerekli';
+                    }
+                    if (!value.contains('@')) {
+                      return 'Geçerli bir e-posta girin';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: AppTokens.spacing16),
                 TextFormField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
-                  autofillHints: const [AutofillHints.newPassword],
                   decoration: InputDecoration(
                     labelText: 'Şifre',
-                    hintText: 'En az 6 karakter',
-                    prefixIcon: const Icon(Icons.lock_outlined),
+                    prefixIcon: const Icon(Icons.lock_outline_rounded),
                     suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscurePassword
-                            ? Icons.visibility_outlined
-                            : Icons.visibility_off_outlined,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _obscurePassword = !_obscurePassword;
-                        });
-                      },
+                      icon: Icon(_obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                     ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(AppTokens.radiusLarge),
-                    ),
-                    filled: true,
-                    fillColor: Colors.white,
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -183,35 +141,21 @@ class _SignupScreenState extends State<SignupScreen> {
                   },
                 ),
                 const SizedBox(height: AppTokens.spacing16),
-
-                // Confirm Password Field
                 TextFormField(
                   controller: _confirmPasswordController,
                   obscureText: _obscureConfirmPassword,
-                  autofillHints: const [AutofillHints.newPassword],
                   decoration: InputDecoration(
                     labelText: 'Şifre Tekrar',
-                    hintText: 'Aynı şifreyi tekrar girin',
-                    prefixIcon: const Icon(Icons.lock_outlined),
+                    prefixIcon: const Icon(Icons.lock_outline_rounded),
                     suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscureConfirmPassword
-                            ? Icons.visibility_outlined
-                            : Icons.visibility_off_outlined,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _obscureConfirmPassword = !_obscureConfirmPassword;
-                        });
-                      },
+                      icon: Icon(_obscureConfirmPassword ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                      onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
                     ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(AppTokens.radiusLarge),
-                    ),
-                    filled: true,
-                    fillColor: Colors.white,
                   ),
                   validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Şifre tekrarı gerekli';
+                    }
                     if (value != _passwordController.text) {
                       return 'Şifreler eşleşmiyor';
                     }
@@ -219,60 +163,20 @@ class _SignupScreenState extends State<SignupScreen> {
                   },
                 ),
                 const SizedBox(height: AppTokens.spacing32),
-
-                // Sign Up Button
-                SizedBox(
-                  height: 48,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _signUp,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTokens.primaryLight,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppTokens.radiusLarge),
-                      ),
-                    ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Text(
-                            'Hesap Oluştur',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                  ),
+                ModernButton(
+                  label: 'Kayıt Ol',
+                  icon: Icons.person_add_rounded,
+                  isLoading: _isLoading,
+                  onPressed: _signUp,
                 ),
                 const SizedBox(height: AppTokens.spacing24),
-
-                // Already have account link
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
-                      'Zaten hesabınız var mı?',
-                      style: TextStyle(
-                        color: AppTokens.textSecondaryLight,
-                      ),
-                    ),
+                    const Text('Zaten hesabınız var mı?', style: TextStyle(color: AppTokens.textSecondaryLight)),
                     TextButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                      },
-                      child: const Text(
-                        'Giriş Yap',
-                        style: TextStyle(
-                          color: AppTokens.primaryLight,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Giriş Yap'),
                     ),
                   ],
                 ),

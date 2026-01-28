@@ -2,12 +2,13 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:kresai/models/feed_item.dart';
-import 'package:kresai/services/feed_store.dart';
-import 'package:kresai/services/registration_store.dart';
-import 'package:kresai/theme/tokens.dart';
+import '../../models/feed_item.dart';
+import '../../services/feed_store.dart';
+import '../../services/registration_store.dart';
+import '../../theme/tokens.dart';
+import '../../widgets/common/modern_card.dart';
+import '../../widgets/common/modern_button.dart';
 
-/// Teacher Share Screen
 class TeacherShareScreen extends StatefulWidget {
   const TeacherShareScreen({super.key});
 
@@ -17,18 +18,20 @@ class TeacherShareScreen extends StatefulWidget {
 
 class _TeacherShareScreenState extends State<TeacherShareScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _textController = TextEditingController();
+  final _titleController = TextEditingController();
+  final _descriptionController = TextEditingController();
   final _feedStore = FeedStore();
   final _registrationStore = RegistrationStore();
 
-  FeedItemType _selectedType = FeedItemType.text;
+  FeedItemType _selectedType = FeedItemType.photo;
   bool _isSubmitting = false;
   Uint8List? _selectedImageBytes;
   final _imagePicker = ImagePicker();
 
   @override
   void dispose() {
-    _textController.dispose();
+    _titleController.dispose();
+    _descriptionController.dispose();
     super.dispose();
   }
 
@@ -52,7 +55,7 @@ class _TeacherShareScreenState extends State<TeacherShareScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Fotoğraf seçilemedi: $e'),
-          backgroundColor: Colors.red,
+          backgroundColor: AppTokens.errorLight,
         ),
       );
     }
@@ -71,17 +74,15 @@ class _TeacherShareScreenState extends State<TeacherShareScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Öğretmen kaydı bulunamadı'),
-          backgroundColor: Colors.red,
+          backgroundColor: AppTokens.errorLight,
         ),
       );
       setState(() => _isSubmitting = false);
       return;
     }
 
-    // FeedItem oluştur
     String? mediaUrl;
     if (_selectedImageBytes != null) {
-      // Base64 encode
       mediaUrl = 'data:image/jpeg;base64,${base64Encode(_selectedImageBytes!)}';
     }
 
@@ -93,7 +94,8 @@ class _TeacherShareScreenState extends State<TeacherShareScreen> {
       createdAt: DateTime.now().millisecondsSinceEpoch,
       visibility: FeedVisibility.approvedParentsOnly,
       requiresConsent: _selectedType == FeedItemType.photo || _selectedType == FeedItemType.video,
-      textContent: _textController.text.trim().isNotEmpty ? _textController.text.trim() : null,
+      title: _titleController.text.trim(),
+      description: _descriptionController.text.trim().isNotEmpty ? _descriptionController.text.trim() : null,
       mediaUrl: mediaUrl,
     );
 
@@ -105,16 +107,18 @@ class _TeacherShareScreenState extends State<TeacherShareScreen> {
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Paylaşım oluşturuldu'),
-          backgroundColor: Colors.green,
+          content: Text('✅ Paylaşım oluşturuldu'),
+          backgroundColor: AppTokens.successLight,
+          behavior: SnackBarBehavior.floating,
         ),
       );
-      Navigator.pop(context, true); // Refresh için true dön
+      Navigator.pop(context, true);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Bu paylaşım zaten mevcut'),
-          backgroundColor: Colors.orange,
+          content: Text('⚠️ Bu paylaşım zaten mevcut'),
+          backgroundColor: AppTokens.warningLight,
+          behavior: SnackBarBehavior.floating,
         ),
       );
       setState(() => _isSubmitting = false);
@@ -124,135 +128,133 @@ class _TeacherShareScreenState extends State<TeacherShareScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTokens.backgroundLight,
       appBar: AppBar(
-        title: const Text('Paylaşım Oluştur'),
+        title: const Text('Yeni Paylaşım'),
       ),
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(AppTokens.spacing16),
+          padding: const EdgeInsets.all(AppTokens.spacing20),
           children: [
-            const Text(
-              'Paylaşım Türü',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: AppTokens.spacing8),
-            Wrap(
-              spacing: 8,
-              children: [
-                ChoiceChip(
-                  label: const Text('Metin'),
-                  selected: _selectedType == FeedItemType.text,
-                  onSelected: (selected) {
-                    if (selected) setState(() => _selectedType = FeedItemType.text);
-                  },
-                ),
-                ChoiceChip(
-                  label: const Text('Aktivite'),
-                  selected: _selectedType == FeedItemType.activity,
-                  onSelected: (selected) {
-                    if (selected) setState(() => _selectedType = FeedItemType.activity);
-                  },
-                ),
-                ChoiceChip(
-                  label: const Text('Fotoğraf'),
-                  selected: _selectedType == FeedItemType.photo,
-                  onSelected: (selected) {
-                    if (selected) setState(() => _selectedType = FeedItemType.photo);
-                  },
-                ),
-                ChoiceChip(
-                  label: const Text('Video'),
-                  selected: _selectedType == FeedItemType.video,
-                  onSelected: (selected) {
-                    if (selected) setState(() => _selectedType = FeedItemType.video);
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: AppTokens.spacing24),
-            TextFormField(
-              controller: _textController,
-              decoration: const InputDecoration(
-                labelText: 'Açıklama',
-                hintText: 'Paylaşımınızı yazın...',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 5,
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Lütfen bir açıklama girin';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: AppTokens.spacing16),
-            if (_selectedType == FeedItemType.photo || _selectedType == FeedItemType.video) ...[
-              ElevatedButton.icon(
-                onPressed: _pickImage,
-                icon: const Icon(Icons.photo_library),
-                label: Text(_selectedImageBytes == null ? 'Fotoğraf Seç' : 'Fotoğrafı Değiştir'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
-                ),
-              ),
-              if (_selectedImageBytes != null) ...[
-                const SizedBox(height: AppTokens.spacing12),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.memory(
-                    _selectedImageBytes!,
-                    height: 200,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
+            ModernCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Paylaşım Türü',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTokens.textPrimaryLight),
                   ),
-                ),
-              ],
-              const SizedBox(height: AppTokens.spacing12),
-              Container(
-                padding: const EdgeInsets.all(AppTokens.spacing12),
-                decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.info_outline, color: Colors.blue),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Bu içerik için fotoğraf izni gerekli. İzni olmayan veliler göremez.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.blue.shade700,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                  const SizedBox(height: AppTokens.spacing12),
+                  Wrap(
+                    spacing: 12,
+                    children: [
+                      _buildTypeChip(FeedItemType.photo, 'Fotoğraf', Icons.photo_library_rounded),
+                      _buildTypeChip(FeedItemType.video, 'Video', Icons.videocam_rounded),
+                      _buildTypeChip(FeedItemType.activity, 'Etkinlik', Icons.celebration_rounded),
+                      _buildTypeChip(FeedItemType.text, 'Metin', Icons.text_snippet_rounded),
+                    ],
+                  ),
+                ],
               ),
-            ],
-            const SizedBox(height: AppTokens.spacing24),
-            ElevatedButton(
-              onPressed: _isSubmitting ? null : _submit,
-              child: _isSubmitting
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
+            ),
+            const SizedBox(height: AppTokens.spacing20),
+            if (_selectedType == FeedItemType.photo) ...[
+              ModernCard(
+                onTap: _pickImage,
+                color: _selectedImageBytes != null ? AppTokens.primaryLightSoft : AppTokens.surfaceLight,
+                child: _selectedImageBytes != null
+                    ? Column(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(AppTokens.radiusSmall),
+                            child: Image.memory(_selectedImageBytes!, height: 200, width: double.infinity, fit: BoxFit.cover),
+                          ),
+                          const SizedBox(height: 12),
+                          const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.check_circle_rounded, color: AppTokens.successLight, size: 18),
+                              SizedBox(width: 8),
+                              Text('Fotoğraf seçildi • Değiştirmek için tıklayın', style: TextStyle(fontSize: 13, color: AppTokens.textSecondaryLight)),
+                            ],
+                          ),
+                        ],
+                      )
+                    : const Column(
+                        children: [
+                          Icon(Icons.add_photo_alternate_outlined, size: 48, color: AppTokens.primaryLight),
+                          SizedBox(height: 12),
+                          Text('Fotoğraf Seç', style: TextStyle(fontWeight: FontWeight.w600, color: AppTokens.primaryLight)),
+                          Text('Galeriden bir fotoğraf seçin', style: TextStyle(fontSize: 12, color: AppTokens.textSecondaryLight)),
+                        ],
                       ),
-                    )
-                  : const Text('Paylaş'),
+              ),
+              const SizedBox(height: AppTokens.spacing20),
+            ],
+            ModernCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextFormField(
+                    controller: _titleController,
+                    decoration: const InputDecoration(
+                      labelText: 'Başlık',
+                      hintText: 'Örn: Bugünkü Etkinliğimiz',
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                    ),
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    validator: (value) => value == null || value.trim().isEmpty ? 'Başlık gerekli' : null,
+                  ),
+                  const Divider(),
+                  TextFormField(
+                    controller: _descriptionController,
+                    decoration: const InputDecoration(
+                      labelText: 'Açıklama (İsteğe bağlı)',
+                      hintText: 'Paylaşımınız hakkında detay ekleyin...',
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                    ),
+                    maxLines: 4,
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppTokens.spacing32),
+            ModernButton(
+              label: 'Paylaş',
+              icon: Icons.send_rounded,
+              isLoading: _isSubmitting,
+              onPressed: _submit,
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildTypeChip(FeedItemType type, String label, IconData icon) {
+    final isSelected = _selectedType == type;
+    return FilterChip(
+      selected: isSelected,
+      label: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: isSelected ? AppTokens.primaryLight : AppTokens.textSecondaryLight),
+          const SizedBox(width: 6),
+          Text(label),
+        ],
+      ),
+      onSelected: (selected) {
+        if (selected) setState(() => _selectedType = type);
+      },
+      backgroundColor: AppTokens.surfaceLight,
+      selectedColor: AppTokens.primaryLightSoft,
+      side: BorderSide(color: isSelected ? AppTokens.primaryLight : AppTokens.borderLight),
     );
   }
 }

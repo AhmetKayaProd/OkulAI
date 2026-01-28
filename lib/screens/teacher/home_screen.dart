@@ -1,20 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:kresai/services/registration_store.dart';
-import 'package:kresai/services/live_store.dart';
-import 'package:kresai/services/daily_log_store.dart';
-import 'package:kresai/services/feed_store.dart';
-import 'package:kresai/services/activity_log_store.dart';
-import 'package:kresai/services/app_config_store.dart';
-import 'package:kresai/models/live_session.dart';
-import 'package:kresai/models/feed_item.dart';
-import 'package:kresai/models/activity_event.dart';
-import 'package:kresai/models/app_config.dart';
-import 'package:kresai/theme/tokens.dart';
-import 'package:kresai/screens/teacher/parent_approvals_screen.dart';
-import 'package:kresai/screens/teacher/share_screen.dart';
-import 'package:kresai/screens/teacher/exam_management_screen.dart';
+import '../../services/registration_store.dart';
+import '../../services/live_store.dart';
+import '../../services/daily_log_store.dart';
+import '../../services/feed_store.dart';
+import '../../services/activity_log_store.dart';
+import '../../models/live_session.dart';
+import '../../models/feed_item.dart';
+import '../../models/activity_event.dart';
+import '../../theme/tokens.dart';
+import '../../widgets/common/modern_card.dart';
+import '../../widgets/common/modern_button.dart';
+import 'parent_approvals_screen.dart';
+import 'exam_management_screen.dart';
 
-/// Teacher Home Screen
 class TeacherHomeScreen extends StatefulWidget {
   const TeacherHomeScreen({super.key});
 
@@ -45,6 +43,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
   }
 
   Future<void> _loadData() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
 
     await _registrationStore.load();
@@ -56,28 +55,20 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
     final teacherReg = _registrationStore.getCurrentTeacherRegistration();
     if (teacherReg != null && mounted) {
       _classId = teacherReg.className;
-
-      // Pending parents
       _pendingParents = _registrationStore.getPendingParents().length;
-
-      // Active live session
       _activeSession = _liveStore.getActiveSession(_classId!);
-
-      // Today logs progress
+      
       final dateKey = _getDateKey(DateTime.now());
       _totalChildren = _dailyLogStore.getChildrenByClass(_classId!).length;
       final logsToday = _dailyLogStore.listByClassAndDate(_classId!, dateKey);
       _loggedChildren = logsToday.keys.length;
 
-      // Latest feed
       _latestFeed = _feedStore.listForTeacher(_classId!).take(3).toList();
-      
-      // Latest activity (son 5)
       _latestActivity = _activityLogStore.getLatest(limit: 5);
 
       setState(() => _isLoading = false);
     } else {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -88,580 +79,266 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTokens.backgroundLight,
       appBar: AppBar(
-        title: const Text('Ana Sayfa'),
+        title: const Text('OkulAI'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_none_rounded),
+            onPressed: () {},
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _loadData,
+              color: AppTokens.primaryLight,
               child: ListView(
-                padding: const EdgeInsets.all(AppTokens.spacing16),
+                padding: const EdgeInsets.all(AppTokens.spacing20),
                 children: [
-                  // Quick Actions Hero Section
-                  _buildQuickActionsHero(),
+                  _buildWelcomeHeader(),
                   const SizedBox(height: AppTokens.spacing24),
-
-                  // At-a-Glance Summary
-                  _buildAtAGlanceSummary(),
-                  const SizedBox(height: AppTokens.spacing24),
-
-                  // Collapsible Cards
-                  _buildPendingParentsCard(),
-                  const SizedBox(height: AppTokens.spacing12),
-
-                  _buildLiveStatusCard(),
-                  const SizedBox(height: AppTokens.spacing12),
-
-                  _buildTodayLogsCard(),
-                  const SizedBox(height: AppTokens.spacing12),
-
-                  _buildLatestFeedCard(),
-                  const SizedBox(height: AppTokens.spacing12),
-
-                  _buildLatestActivityCard(),
+                  _buildQuickActionsGrid(),
+                  const SizedBox(height: AppTokens.spacing32),
+                  _buildSectionHeader('Bugünün Özeti', Icons.analytics_outlined),
+                  const SizedBox(height: AppTokens.spacing16),
+                  _buildSummaryCards(),
+                  const SizedBox(height: AppTokens.spacing32),
+                  if (_pendingParents > 0) ...[
+                    _buildPendingApprovalsAlert(),
+                    const SizedBox(height: AppTokens.spacing32),
+                  ],
+                  _buildSectionHeader('Son Aktiviteler', Icons.history_rounded),
+                  const SizedBox(height: AppTokens.spacing16),
+                  _buildActivityList(),
                 ],
               ),
             ),
     );
   }
 
-  Widget _buildQuickActionsHero() {
-    return Card(
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Hoş geldin! 👋',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: AppTokens.primaryLight,
-              ),
-            ),
-            const SizedBox(height: AppTokens.spacing8),
-            Text(
-              'Bugün ne yapmak istersin?',
-              style: TextStyle(
-                fontSize: 14,
-                color: AppTokens.textSecondaryLight,
-              ),
-            ),
-            const SizedBox(height: AppTokens.spacing24),
-            // Quick action buttons grid
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 2.2,
-              children: [
-                _buildQuickActionButton(
-                  icon: Icons.assignment,
-                  label: 'Sınav Oluştur',
-                  color: Colors.blue,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const ExamManagementScreen(),
-                      ),
-                    );
-                  },
-                ),
-                _buildQuickActionButton(
-                  icon: Icons.school,
-                  label: 'Ödev Ver',
-                  color: Colors.purple,
-                  onTap: () {
-                    Navigator.pushNamed(context, '/teacher/homework-management');
-                  },
-                ),
-                _buildQuickActionButton(
-                  icon: Icons.today,
-                  label: 'Bugünün Planı',
-                  color: Colors.green,
-                  onTap: () {
-                    // TODO: Navigate to today plan
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Plan ekranı yakında...')),
-                    );
-                  },
-                ),
-                _buildQuickActionButton(
-                  icon: Icons.message,
-                  label: 'Veli Mesajları',
-                  color: Colors.orange,
-                  onTap: () {
-                    // TODO: Navigate to messages
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Mesajlar yakında...')),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ],
+  Widget _buildWelcomeHeader() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Hoş geldin, Öğretmenim 👋',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: AppTokens.textPrimaryLight,
+            letterSpacing: -0.5,
+          ),
         ),
-      ),
+        const SizedBox(height: 4),
+        Text(
+          '${_classId ?? "Sınıf Seçilmedi"} • ${DateTime.now().day} Ocak Çarşamba',
+          style: const TextStyle(
+            color: AppTokens.textSecondaryLight,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _buildQuickActionButton({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.3)),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: color, size: 28),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey.shade800,
-              ),
-            ),
-          ],
-        ),
-      ),
+  Widget _buildQuickActionsGrid() {
+    return GridView.count(
+      crossAxisCount: 4,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      mainAxisSpacing: AppTokens.spacing16,
+      crossAxisSpacing: AppTokens.spacing16,
+      children: [
+        _buildActionItem(Icons.assignment_outlined, 'Sınav', Colors.blue, () {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const ExamManagementScreen()));
+        }),
+        _buildActionItem(Icons.edit_calendar_outlined, 'Ödev', Colors.purple, () {
+          Navigator.pushNamed(context, '/teacher/homework-management');
+        }),
+        _buildActionItem(Icons.camera_alt_outlined, 'Paylaş', Colors.orange, () {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const TeacherShareScreen()));
+        }),
+        _buildActionItem(Icons.more_horiz_rounded, 'Daha', Colors.slate, () {}),
+      ],
     );
   }
 
-  Widget _buildAtAGlanceSummary() {
-    return Card(
-      color: AppTokens.primaryLight.withOpacity(0.05),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.today, size: 20, color: AppTokens.primaryLight),
-                const SizedBox(width: 8),
-                const Text(
-                  'Bugün',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
+  Widget _buildActionItem(IconData icon, String label, Color color, VoidCallback onTap) {
+    return Column(
+      children: [
+        InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppTokens.radiusMedium),
+          child: Container(
+            padding: const EdgeInsets.all(AppTokens.spacing12),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(AppTokens.radiusMedium),
             ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 16,
-              runSpacing: 8,
-              children: [
-                _buildSummaryChip(
-                  icon: Icons.people,
-                  label: '$_loggedChildren/$_totalChildren giriş yapıldı',
-                  color: _loggedChildren == _totalChildren 
-                      ? Colors.green 
-                      : Colors.blue,
-                ),
-                if (_pendingParents > 0)
-                  _buildSummaryChip(
-                    icon: Icons.notification_important,
-                    label: '$_pendingParents veli onayı',
-                    color: Colors.orange,
-                  ),
-                if (_activeSession != null)
-                  _buildSummaryChip(
-                    icon: Icons.videocam,
-                    label: 'Canlı yayın aktif',
-                    color: Colors.red,
-                  ),
-              ],
-            ),
-          ],
+            child: Icon(icon, color: color, size: 28),
+          ),
         ),
-      ),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTokens.textSecondaryLight),
+        ),
+      ],
     );
   }
 
-  Widget _buildSummaryChip({
-    required IconData icon,
-    required String label,
-    required Color color,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: color),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey.shade800,
+  Widget _buildSectionHeader(String title, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: AppTokens.textPrimaryLight),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTokens.textPrimaryLight),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSummaryCards() {
+    return Row(
+      children: [
+        Expanded(
+          child: ModernCard(
+            color: AppTokens.primaryLightSoft,
+            border: BorderSide.none,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.people_outline_rounded, color: AppTokens.primaryLight),
+                const SizedBox(height: 12),
+                Text(
+                  '$_loggedChildren/$_totalChildren',
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTokens.primaryLight),
+                ),
+                const Text('Yoklama', style: TextStyle(fontSize: 12, color: AppTokens.textSecondaryLight)),
+              ],
             ),
           ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: ModernCard(
+            color: _activeSession != null ? AppTokens.secondaryLightSoft : AppTokens.surfaceLight,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.videocam_outlined, 
+                  color: _activeSession != null ? AppTokens.secondaryLight : AppTokens.textTertiaryLight
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  _activeSession != null ? 'Aktif' : 'Kapalı',
+                  style: TextStyle(
+                    fontSize: 20, 
+                    fontWeight: FontWeight.bold, 
+                    color: _activeSession != null ? AppTokens.secondaryLight : AppTokens.textSecondaryLight
+                  ),
+                ),
+                const Text('Canlı Yayın', style: TextStyle(fontSize: 12, color: AppTokens.textSecondaryLight)),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPendingApprovalsAlert() {
+    return ModernCard(
+      color: AppTokens.warningLight.withOpacity(0.1),
+      border: const BorderSide(color: AppTokens.warningLight, width: 0.5),
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ParentApprovalsScreen())),
+      child: Row(
+        children: [
+          const Icon(Icons.notification_important_rounded, color: AppTokens.warningLight),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$_pendingParents Bekleyen Onay',
+                  style: const TextStyle(fontWeight: FontWeight.bold, color: AppTokens.textPrimaryLight),
+                ),
+                const Text('Yeni veli kayıtlarını inceleyin.', style: TextStyle(fontSize: 13, color: AppTokens.textSecondaryLight)),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right_rounded, color: AppTokens.textTertiaryLight),
         ],
       ),
     );
   }
-  
-  Widget _buildLatestActivityCard() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppTokens.spacing16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.history, color: AppTokens.primaryLight),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Text(
-                    'Son Aktiviteler',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppTokens.spacing12),
-            if (_latestActivity.isEmpty)
-              Text(
-                'Henüz aktivite yok',
-                style: TextStyle(color: AppTokens.textSecondaryLight),
-              )
-            else
-              Column(
-                children: _latestActivity.map((event) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Row(
-                      children: [
-                        Icon(
-                          _getActivityIcon(event.type),
-                          size: 16,
-                          color: AppTokens.textSecondaryLight,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            event.description,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 12),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
 
-  IconData _getActivityIcon(ActivityEventType type) {
-    switch (type) {
-      case ActivityEventType.teacherApproved:
-      case ActivityEventType.parentApproved:
-        return Icons.check_circle;
-      case ActivityEventType.teacherRejected:
-      case ActivityEventType.parentRejected:
-        return Icons.cancel;
-      case ActivityEventType.liveStarted:
-        return Icons.videocam;
-      case ActivityEventType.liveEnded:
-        return Icons.videocam_off;
-      case ActivityEventType.feedPosted:
-        return Icons.dynamic_feed;
-      case ActivityEventType.dailyUpdated:
-        return Icons.assignment;
+  Widget _buildActivityList() {
+    if (_latestActivity.isEmpty) {
+      return const ModernCard(
+        child: Center(
+          child: Text('Henüz aktivite yok.', style: TextStyle(color: AppTokens.textTertiaryLight)),
+        ),
+      );
     }
-  }
 
-  Widget _buildPendingParentsCard() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppTokens.spacing16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.how_to_reg, color: AppTokens.primaryLight),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Text(
-                    'Bekleyen Veli Başvuruları',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+    return Column(
+      children: _latestActivity.map((activity) => Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: ModernCard(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTokens.backgroundLight,
+                  shape: BoxShape.circle,
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: _pendingParents > 0 ? Colors.orange : Colors.grey,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    _pendingParents.toString(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppTokens.spacing12),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const TeacherParentApprovalsScreen(),
-                    ),
-                  );
-                },
-                child: const Text('Onaylara Git'),
+                child: Icon(_getActivityIcon(activity.type), size: 18, color: AppTokens.primaryLight),
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLiveStatusCard() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppTokens.spacing16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.videocam,
-                  color: _activeSession != null ? Colors.red : AppTokens.primaryLight,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    _activeSession != null ? 'Canlı Yayın Aktif' : 'Canlı Yayın',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      activity.title,
+                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                     ),
-                  ),
-                ),
-                if (_activeSession != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Text(
-                      'CANLI',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            if (_activeSession != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                _activeSession!.title,
-                style: TextStyle(color: AppTokens.textSecondaryLight),
-              ),
-            ],
-            const SizedBox(height: AppTokens.spacing12),
-            Text(
-              _activeSession != null
-                  ? 'Canlı yayınınız devam ediyor. Bitirmek için Canlı sekmesine gidin.'
-                  : 'Canlı yayın başlatmak için Canlı sekmesine gidin.',
-              style: TextStyle(
-                fontSize: 12,
-                color: AppTokens.textSecondaryLight,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTodayLogsCard() {
-    // Feature flags
-    final config = AppConfigStore().config;
-    final title = config != null && config.schoolType == SchoolType.primaryPrivate
-        ? 'Bugün (Ders Girişi)'
-        : 'Bugün Girişleri';
-    
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppTokens.spacing16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.assignment, color: AppTokens.primaryLight),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppTokens.spacing12),
-            Row(
-              children: [
-                Text(
-                  '$_loggedChildren / $_totalChildren',
-                  style: const TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'çocuk için giriş yapıldı',
-                  style: TextStyle(color: AppTokens.textSecondaryLight),
-                ),
-              ],
-            ),
-            if (_totalChildren > 0) ...[
-              const SizedBox(height: 8),
-              LinearProgressIndicator(
-                value: _loggedChildren / _totalChildren,
-                backgroundColor: Colors.grey.withOpacity(0.2),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLatestFeedCard() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppTokens.spacing16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.dynamic_feed, color: AppTokens.primaryLight),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Text(
-                    'Son Paylaşımlar',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppTokens.spacing12),
-            if (_latestFeed.isEmpty)
-              Text(
-                'Henüz paylaşım yok',
-                style: TextStyle(color: AppTokens.textSecondaryLight),
-              )
-            else
-              Column(
-                children: _latestFeed.map((item) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Text(
-                      '${_getFeedTypeLabel(item.type)}: ${item.textContent ?? ""}',
+                    Text(
+                      activity.description,
+                      style: const TextStyle(color: AppTokens.textSecondaryLight, fontSize: 12),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 14),
                     ),
-                  );
-                }).toList(),
-              ),
-            const SizedBox(height: AppTokens.spacing12),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const TeacherShareScreen(),
-                        ),
-                      );
-                    },
-                    child: const Text('Paylaş'),
-                  ),
+                  ],
                 ),
-              ],
-            ),
-          ],
+              ),
+              Text(
+                '12:45', // Örnek saat
+                style: const TextStyle(color: AppTokens.textTertiaryLight, fontSize: 11),
+              ),
+            ],
+          ),
         ),
-      ),
+      )).toList(),
     );
   }
 
-  String _getFeedTypeLabel(FeedItemType type) {
+  IconData _getActivityIcon(String type) {
     switch (type) {
-      case FeedItemType.photo:
-        return 'Fotoğraf';
-      case FeedItemType.video:
-        return 'Video';
-      case FeedItemType.activity:
-        return 'Aktivite';
-      case FeedItemType.text:
-        return 'Metin';
+      case 'homework': return Icons.edit_note_rounded;
+      case 'exam': return Icons.quiz_outlined;
+      case 'feed': return Icons.photo_library_outlined;
+      default: return Icons.notifications_none_rounded;
     }
   }
 }

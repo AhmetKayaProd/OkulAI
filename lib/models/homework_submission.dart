@@ -135,6 +135,7 @@ class HomeworkSubmission {
   final DateTime submittedAt;
   final int reviewCount; // track re-submissions
   final bool sentToTeacher;
+  final DateTime? gradedAt;
 
   const HomeworkSubmission({
     required this.id,
@@ -151,6 +152,7 @@ class HomeworkSubmission {
     required this.submittedAt,
     required this.reviewCount,
     required this.sentToTeacher,
+    this.gradedAt,
   });
 
   factory HomeworkSubmission.fromJson(Map<String, dynamic> json) {
@@ -171,6 +173,9 @@ class HomeworkSubmission {
       submittedAt: DateTime.fromMillisecondsSinceEpoch(json['submittedAt'] as int),
       reviewCount: json['reviewCount'] as int,
       sentToTeacher: json['sentToTeacher'] as bool,
+      gradedAt: json['gradedAt'] != null
+          ? DateTime.fromMillisecondsSinceEpoch(json['gradedAt'] as int)
+          : null,
     );
   }
 
@@ -190,6 +195,7 @@ class HomeworkSubmission {
       'submittedAt': submittedAt.millisecondsSinceEpoch,
       'reviewCount': reviewCount,
       'sentToTeacher': sentToTeacher,
+      'gradedAt': gradedAt?.millisecondsSinceEpoch,
     };
   }
 
@@ -213,6 +219,9 @@ class HomeworkSubmission {
       submittedAt: (data['submittedAt'] as Timestamp).toDate(),
       reviewCount: data['reviewCount'] as int,
       sentToTeacher: data['sentToTeacher'] as bool,
+      gradedAt: data['gradedAt'] != null
+          ? (data['gradedAt'] as Timestamp).toDate()
+          : null,
     );
   }
 
@@ -231,6 +240,7 @@ class HomeworkSubmission {
       'submittedAt': Timestamp.fromDate(submittedAt),
       'reviewCount': reviewCount,
       'sentToTeacher': sentToTeacher,
+      'gradedAt': gradedAt != null ? Timestamp.fromDate(gradedAt!) : null,
     };
   }
 
@@ -249,6 +259,7 @@ class HomeworkSubmission {
     DateTime? submittedAt,
     bool? sentToTeacher,
     int? reviewCount,
+    DateTime? gradedAt,
   }) {
     return HomeworkSubmission(
       id: id ?? this.id,
@@ -265,6 +276,7 @@ class HomeworkSubmission {
       submittedAt: submittedAt ?? this.submittedAt,
       reviewCount: reviewCount ?? this.reviewCount,
       sentToTeacher: sentToTeacher ?? this.sentToTeacher,
+      gradedAt: gradedAt ?? this.gradedAt,
     );
   }
 

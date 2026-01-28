@@ -1,34 +1,27 @@
 import 'package:flutter/material.dart';
-import 'package:kresai/models/exam.dart';
-import 'package:kresai/models/exam_submission.dart';
-import 'package:kresai/services/exam_store.dart';
-import 'package:kresai/services/exam_submission_store.dart';
-import 'package:kresai/screens/parent/exam_participation_screen.dart';
-import 'package:kresai/screens/parent/exam_result_screen.dart';
-import 'package:kresai/theme/tokens.dart';
+import '../../models/exam.dart';
+import '../../models/exam_submission.dart';
+import '../../services/exam_store.dart';
+import '../../services/exam_submission_store.dart';
+import '../../theme/tokens.dart';
+import '../../widgets/common/modern_card.dart';
+import 'exam_participation_screen.dart';
+import 'exam_result_screen.dart';
 
-/// Exam List Screen - Parent view of available and completed exams
-class ExamListScreen extends StatefulWidget {
-  final String studentId;
-  final String parentId;
-  final String classId;
-
-  const ExamListScreen({
-    super.key,
-    required this.studentId,
-    required this.parentId,
-    required this.classId,
-  });
+class ParentExamListScreen extends StatefulWidget {
+  const ParentExamListScreen({super.key});
 
   @override
-  State<ExamListScreen> createState() => _ExamListScreenState();
+  State<ParentExamListScreen> createState() => _ParentExamListScreenState();
 }
 
-class _ExamListScreenState extends State<ExamListScreen> with SingleTickerProviderStateMixin {
+class _ParentExamListScreenState extends State<ParentExamListScreen> with SingleTickerProviderStateMixin {
   final _examStore = ExamStore();
   final _submissionStore = ExamSubmissionStore();
-
   late TabController _tabController;
+
+  final String _studentId = 'mock_student_id';
+  final String _classId = 'global';
 
   @override
   void initState() {
@@ -45,41 +38,36 @@ class _ExamListScreenState extends State<ExamListScreen> with SingleTickerProvid
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTokens.backgroundLight,
       appBar: AppBar(
         title: const Text('Sınavlar'),
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
-            Tab(text: 'Bekliyor', icon: Icon(Icons.pending_actions)),
-            Tab(text: 'Gönderildi', icon: Icon(Icons.send)),
-            Tab(text: 'Notlandı', icon: Icon(Icons.star)),
+            Tab(text: 'Bekliyor'),
+            Tab(text: 'Gönderildi'),
+            Tab(text: 'Notlandı'),
           ],
         ),
       ),
       body: StreamBuilder<Map<String, ExamSubmission>>(
-        stream: _submissionStore.watchAllStudentSubmissions(widget.studentId),
+        stream: _submissionStore.watchAllStudentSubmissions(_studentId),
         builder: (context, submissionSnapshot) {
           final submissionMap = submissionSnapshot.data ?? {};
 
           return StreamBuilder<List<Exam>>(
-            stream: _examStore.watchStudentExams(
-              classId: widget.classId,
-              studentId: widget.studentId,
-            ),
+            stream: _examStore.watchStudentExams(classId: _classId, studentId: _studentId),
             builder: (context, examSnapshot) {
               if (examSnapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               }
 
               if (examSnapshot.hasError) {
-                return Center(
-                  child: Text('Hata: ${examSnapshot.error}'),
-                );
+                return Center(child: Text('Hata: ${examSnapshot.error}'));
               }
 
               final exams = examSnapshot.data ?? [];
 
-              // Filter exams by status
               final pendingExams = exams.where((exam) {
                 final submission = submissionMap[exam.id];
                 return submission == null || submission.status == SubmissionStatus.inProgress;
@@ -110,18 +98,15 @@ class _ExamListScreenState extends State<ExamListScreen> with SingleTickerProvid
     );
   }
 
-  Widget _buildExamList(
-    List<Exam> exams,
-    Map<String, ExamSubmission> submissionMap,
-    String category,
-  ) {
+  Widget _buildExamList(List<Exam> exams, Map<String, ExamSubmission> submissionMap, String category) {
     if (exams.isEmpty) {
       return _buildEmptyState(category);
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(AppTokens.spacing16),
+    return ListView.separated(
+      padding: const EdgeInsets.all(AppTokens.spacing20),
       itemCount: exams.length,
+      separatorBuilder: (_, __) => const SizedBox(height: AppTokens.spacing16),
       itemBuilder: (context, index) {
         final exam = exams[index];
         final submission = submissionMap[exam.id];
@@ -137,15 +122,15 @@ class _ExamListScreenState extends State<ExamListScreen> with SingleTickerProvid
     switch (category) {
       case 'pending':
         message = 'Bekleyen sınav yok';
-        icon = Icons.check_circle_outline;
+        icon = Icons.pending_actions_outlined;
         break;
       case 'submitted':
-        message = 'Puanlanan sınav yok';
-        icon = Icons.pending_actions;
+        message = 'Gönderilmiş sınav yok';
+        icon = Icons.send_outlined;
         break;
       case 'graded':
         message = 'Notlandırılmış sınav yok';
-        icon = Icons.star_outline;
+        icon = Icons.star_outline_rounded;
         break;
       default:
         message = 'Sınav bulunamadı';
@@ -156,19 +141,18 @@ class _ExamListScreenState extends State<ExamListScreen> with SingleTickerProvid
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            icon,
-            size: 80,
-            color: AppTokens.textSecondaryLight,
+          Container(
+            padding: const EdgeInsets.all(AppTokens.spacing24),
+            decoration: const BoxDecoration(
+              color: AppTokens.primaryLightSoft,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 64, color: AppTokens.primaryLight),
           ),
-          const SizedBox(height: AppTokens.spacing16),
+          const SizedBox(height: AppTokens.spacing24),
           Text(
             message,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w500,
-              color: AppTokens.textSecondaryLight,
-            ),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTokens.textPrimaryLight),
           ),
         ],
       ),
@@ -176,218 +160,86 @@ class _ExamListScreenState extends State<ExamListScreen> with SingleTickerProvid
   }
 
   Widget _buildExamCard(Exam exam, ExamSubmission? submission, String category) {
-    final now = DateTime.now();
-    final daysUntilDue = exam.dueDate != null
-        ? exam.dueDate!.difference(now).inDays
-        : null;
-
-    Color? urgencyColor;
-    String dueText = 'Süresiz';
-    
-    if (daysUntilDue != null) {
-      if (daysUntilDue < 0) {
-        dueText = 'Süresi doldu';
-        urgencyColor = AppTokens.errorLight;
-      } else if (daysUntilDue == 0) {
-        dueText = 'Bugün';
-        urgencyColor = Colors.orange;
-      } else if (daysUntilDue == 1) {
-        dueText = 'Yarın';
-        urgencyColor = Colors.orange;
-      } else {
-        dueText = '$daysUntilDue gün kaldı';
-      }
-    }
-
-    // Determine status badge
-    String statusText;
     Color statusColor;
-    
-    if (submission == null) {
-      statusText = 'Başlanmadı';
-      statusColor = Colors.grey;
+    IconData statusIcon;
+    String statusText;
+
+    if (category == 'pending') {
+      statusColor = AppTokens.warningLight;
+      statusIcon = Icons.pending_outlined;
+      statusText = 'Bekliyor';
+    } else if (category == 'submitted') {
+      statusColor = AppTokens.infoLight;
+      statusIcon = Icons.send_outlined;
+      statusText = 'Gönderildi';
     } else {
-      switch (submission.status) {
-        case SubmissionStatus.inProgress:
-          statusText = 'Devam ediyor';
-          statusColor = Colors.blue;
-          break;
-        case SubmissionStatus.submitted:
-          statusText = 'Puanlanıyor';
-          statusColor = Colors.orange;
-          break;
-        case SubmissionStatus.graded:
-          final score = submission.grade!.teacherScore ?? submission.grade!.score;
-          final maxScore = submission.grade!.maxScore;
-          statusText = '$score/$maxScore';
-          statusColor = AppTokens.successLight;
-          break;
-      }
+      statusColor = AppTokens.successLight;
+      statusIcon = Icons.star_rounded;
+      statusText = 'Notlandı';
     }
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: AppTokens.spacing12),
-      child: InkWell(
-        onTap: () => _handleExamTap(exam, submission),
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(AppTokens.spacing16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return ModernCard(
+      onTap: () {
+        if (category == 'graded' && submission != null) {
+          // Sonuç ekranı henüz uyarlanmadı
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Sınav sonuçları yakında görüntülenebilecek')),
+          );
+        } else {
+          // Katılım ekranı henüz uyarlanmadı
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Sınav katılımı yakında aktif olacak')),
+          );
+        }
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              // Header
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppTokens.primaryLight.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      Icons.quiz,
-                      color: AppTokens.primaryLight,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          exam.title,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          exam.topics.join(', '),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: AppTokens.textSecondaryLight,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                  Chip(
-                    label: Text(statusText),
-                    backgroundColor: statusColor.withOpacity(0.2),
-                    labelStyle: TextStyle(
-                      fontSize: 12,
-                      color: statusColor,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.quiz_outlined, color: statusColor, size: 20),
               ),
-              
-              const SizedBox(height: AppTokens.spacing12),
-              
-              // Info row
-              Wrap(
-                spacing: 16,
-                runSpacing: 8,
-                children: [
-                  _buildInfoChip(
-                    Icons.quiz,
-                    '${exam.questions.length} soru',
-                  ),
-                  _buildInfoChip(
-                    Icons.schedule,
-                    '~${exam.estimatedMinutes} dk',
-                  ),
-                  if (exam.dueDate != null)
-                    _buildInfoChip(
-                      Icons.event,
-                      dueText,
-                      color: urgencyColor,
-                    ),
-                ],
-              ),
-              
-              // Progress indicator for in-progress exams
-              if (submission != null && submission.status == SubmissionStatus.inProgress) ...[
-                const SizedBox(height: AppTokens.spacing12),
-                Row(
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: LinearProgressIndicator(
-                        value: submission.answers.length / exam.questions.length,
-                        backgroundColor: Colors.grey.withOpacity(0.2),
-                        valueColor: AlwaysStoppedAnimation(AppTokens.primaryLight),
-                        minHeight: 6,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
                     Text(
-                      '${submission.answers.length}/${exam.questions.length}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppTokens.textSecondaryLight,
-                      ),
+                      exam.title,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${exam.questions.length} soru',
+                      style: const TextStyle(color: AppTokens.textSecondaryLight, fontSize: 12),
                     ),
                   ],
                 ),
-              ],
+              ),
             ],
           ),
-        ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Icon(Icons.help_outline_rounded, size: 16, color: AppTokens.textSecondaryLight),
+              const SizedBox(width: 6),
+              Text('${exam.questions.length} soru', style: const TextStyle(fontSize: 12, color: AppTokens.textSecondaryLight)),
+              const Spacer(),
+              Icon(statusIcon, size: 16, color: statusColor),
+              const SizedBox(width: 6),
+              Text(statusText, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: statusColor)),
+            ],
+          ),
+        ],
       ),
     );
-  }
-
-  Widget _buildInfoChip(IconData icon, String text, {Color? color}) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          icon,
-          size: 14,
-          color: color ?? AppTokens.textSecondaryLight,
-        ),
-        const SizedBox(width: 4),
-        Text(
-          text,
-          style: TextStyle(
-            fontSize: 12,
-            color: color ?? AppTokens.textSecondaryLight,
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _handleExamTap(Exam exam, ExamSubmission? submission) {
-    if (submission?.status == SubmissionStatus.graded) {
-      // Navigate to result screen
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ExamResultScreen(
-            examId: exam.id,
-            studentId: widget.studentId,
-          ),
-        ),
-      );
-    } else {
-      // Navigate to participation screen
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ExamParticipationScreen(
-            exam: exam,
-            studentId: widget.studentId,
-            parentId: widget.parentId,
-          ),
-        ),
-      );
-    }
   }
 }

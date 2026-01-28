@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:kresai/models/invite_code.dart';
-import 'package:kresai/services/code_service.dart';
-import 'package:kresai/services/registration_store.dart';
-import 'package:kresai/theme/tokens.dart';
+import '../../models/invite_code.dart';
+import '../../services/code_service.dart';
+import '../../services/registration_store.dart';
+import '../../theme/tokens.dart';
+import '../../widgets/common/modern_card.dart';
+import '../../widgets/common/modern_button.dart';
 
-/// Admin - Teacher Invite Code Yönetimi
 class AdminTeacherCodeScreen extends StatefulWidget {
   const AdminTeacherCodeScreen({super.key});
 
@@ -16,6 +17,7 @@ class AdminTeacherCodeScreen extends StatefulWidget {
 class _AdminTeacherCodeScreenState extends State<AdminTeacherCodeScreen> {
   final _store = RegistrationStore();
   bool _isLoading = true;
+  bool _isGenerating = false;
 
   @override
   void initState() {
@@ -25,25 +27,33 @@ class _AdminTeacherCodeScreenState extends State<AdminTeacherCodeScreen> {
 
   Future<void> _loadData() async {
     await _store.load();
-    setState(() => _isLoading = false);
+    if (mounted) setState(() => _isLoading = false);
   }
 
   Future<void> _generateCode() async {
+    setState(() => _isGenerating = true);
+    
     final newCode = InviteCode(
       type: InviteCodeType.teacher,
       code: CodeService.generateCode(),
+      schoolId: 'admin_school',
       isActive: true,
       createdAt: DateTime.now(),
     );
 
     final success = await _store.saveTeacherCode(newCode);
-    if (!mounted) return;
-
-    if (success) {
-      setState(() {});
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Yeni kod oluşturuldu')),
-      );
+    
+    if (mounted) {
+      setState(() => _isGenerating = false);
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Yeni öğretmen kodu oluşturuldu'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: AppTokens.successLight,
+          ),
+        );
+      }
     }
   }
 
@@ -53,12 +63,13 @@ class _AdminTeacherCodeScreenState extends State<AdminTeacherCodeScreen> {
     final updated = _store.teacherCode!.copyWith(isActive: false);
     final success = await _store.saveTeacherCode(updated);
 
-    if (!mounted) return;
-
-    if (success) {
+    if (mounted && success) {
       setState(() {});
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Kod iptal edildi')),
+        const SnackBar(
+          content: Text('⚠️ Kod iptal edildi'),
+          behavior: SnackBarBehavior.floating,
+        ),
       );
     }
   }
@@ -70,7 +81,10 @@ class _AdminTeacherCodeScreenState extends State<AdminTeacherCodeScreen> {
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Kod kopyalandı')),
+      const SnackBar(
+        content: Text('📋 Kod kopyalandı'),
+        behavior: SnackBarBehavior.floating,
+      ),
     );
   }
 
@@ -83,172 +97,184 @@ class _AdminTeacherCodeScreenState extends State<AdminTeacherCodeScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(AppTokens.spacing16),
+              padding: const EdgeInsets.all(AppTokens.spacing20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  if (_store.teacherCode == null || !_store.teacherCode!.isActive) ...[
-                    // Kod yok veya iptal edilmiş
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(AppTokens.spacing24),
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.vpn_key,
-                              size: 64,
-                              color: AppTokens.textSecondaryLight,
-                            ),
-                            const SizedBox(height: AppTokens.spacing16),
-                            Text(
-                              'Aktif Öğretmen Kodu Yok',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: AppTokens.textPrimaryLight,
-                              ),
-                            ),
-                            const SizedBox(height: AppTokens.spacing8),
-                            Text(
-                              'Yeni öğretmenlerin kayıt olabilmesi için bir davet kodu oluşturun.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: AppTokens.textSecondaryLight,
-                              ),
-                            ),
-                            const SizedBox(height: AppTokens.spacing24),
-                            ElevatedButton.icon(
-                              onPressed: _generateCode,
-                              icon: const Icon(Icons.add),
-                              label: const Text('Kod Üret'),
-                            ),
-                          ],
-                        ),
-                      ),
+                  _buildStatusHeader(),
+                  const SizedBox(height: AppTokens.spacing24),
+                  if (_store.teacherCode == null || !_store.teacherCode!.isActive)
+                    _buildEmptyState()
+                  else
+                    _buildActiveCodeCard(),
+                  const SizedBox(height: AppTokens.spacing24),
+                  _buildInfoCard(),
+                ],
+              ),
+            ),
+    );
+  }
+
+  Widget _buildStatusHeader() {
+    final isActive = _store.teacherCode != null && _store.teacherCode!.isActive;
+    return Row(
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: isActive ? AppTokens.successLight : AppTokens.textTertiaryLight,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: AppTokens.spacing8),
+        Text(
+          isActive ? 'Aktif Kod Mevcut' : 'Aktif Kod Yok',
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            color: AppTokens.textSecondaryLight,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return ModernCard(
+      padding: const EdgeInsets.symmetric(vertical: AppTokens.spacing48, horizontal: AppTokens.spacing24),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(AppTokens.spacing20),
+            decoration: const BoxDecoration(
+              color: AppTokens.primaryLightSoft,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.vpn_key_outlined, size: 40, color: AppTokens.primaryLight),
+          ),
+          const SizedBox(height: AppTokens.spacing24),
+          const Text(
+            'Yeni Kod Gerekli',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: AppTokens.spacing8),
+          const Text(
+            'Öğretmenlerin sisteme kayıt olabilmesi için bir davet kodu oluşturmanız gerekmektedir.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: AppTokens.textSecondaryLight),
+          ),
+          const SizedBox(height: AppTokens.spacing32),
+          ModernButton(
+            label: 'Davet Kodu Oluştur',
+            icon: Icons.add,
+            isLoading: _isGenerating,
+            onPressed: _generateCode,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActiveCodeCard() {
+    return Column(
+      children: [
+        ModernCard(
+          padding: const EdgeInsets.all(AppTokens.spacing24),
+          child: Column(
+            children: [
+              const Text(
+                'GÜNCEL DAVET KODU',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.5,
+                  color: AppTokens.textTertiaryLight,
+                ),
+              ),
+              const SizedBox(height: AppTokens.spacing16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: AppTokens.spacing20),
+                decoration: BoxDecoration(
+                  color: AppTokens.backgroundLight,
+                  borderRadius: BorderRadius.circular(AppTokens.radiusMedium),
+                ),
+                child: Center(
+                  child: Text(
+                    _store.teacherCode!.code,
+                    style: const TextStyle(
+                      fontSize: 36,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 8,
+                      color: AppTokens.primaryLight,
                     ),
-                  ] else ...[
-                    // Aktif kod var
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(AppTokens.spacing24),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Aktif Davet Kodu',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: AppTokens.textPrimaryLight,
-                              ),
-                            ),
-                            const SizedBox(height: AppTokens.spacing16),
-                            Container(
-                              padding: const EdgeInsets.all(AppTokens.spacing16),
-                              decoration: BoxDecoration(
-                                color: AppTokens.backgroundLight,
-                                borderRadius: BorderRadius.circular(AppTokens.radiusMedium),
-                                border: Border.all(color: AppTokens.primaryLight, width: 2),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    _store.teacherCode!.code,
-                                    style: const TextStyle(
-                                      fontSize: 32,
-                                      fontWeight: FontWeight.bold,
-                                      fontFamily: 'Courier',
-                                      color: AppTokens.primaryLight,
-                                      letterSpacing: 4,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: AppTokens.spacing24),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: OutlinedButton.icon(
-                                    onPressed: _copyCode,
-                                    icon: const Icon(Icons.copy),
-                                    label: const Text('Kopyala'),
-                                  ),
-                                ),
-                                const SizedBox(width: AppTokens.spacing8),
-                                Expanded(
-                                  child: OutlinedButton.icon(
-                                    onPressed: _generateCode,
-                                    icon: const Icon(Icons.refresh),
-                                    label: const Text('Yenile'),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: AppTokens.spacing8),
-                            SizedBox(
-                              width: double.infinity,
-                              child: OutlinedButton.icon(
-                                onPressed: _deactivateCode,
-                                icon: const Icon(Icons.block),
-                                label: const Text('İptal Et'),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: Colors.red,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppTokens.spacing24),
+              Row(
+                children: [
+                  Expanded(
+                    child: ModernButton(
+                      label: 'Kopyala',
+                      icon: Icons.copy_rounded,
+                      style: ModernButtonStyle.secondary,
+                      onPressed: _copyCode,
                     ),
-                  ],
-                  
-                  const SizedBox(height: AppTokens.spacing16),
-                  
-                  // Bilgilendirme
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppTokens.spacing16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.info_outline,
-                                color: AppTokens.primaryLight,
-                                size: 20,
-                              ),
-                              const SizedBox(width: AppTokens.spacing8),
-                              Text(
-                                'Bilgi',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTokens.textPrimaryLight,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: AppTokens.spacing8),
-                          Text(
-                            '• Bu kod tüm öğretmenler tarafından kullanılabilir\n'
-                            '• Kodu paylaştığınız herkes öğretmen kaydı yapabilir\n'
-                            '• İptal ettiğinizde kod geçersiz olur\n'
-                            '• Yenilediğinizde eski kod iptal olur, yeni kod oluşur',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: AppTokens.textSecondaryLight,
-                              height: 1.5,
-                            ),
-                          ),
-                        ],
-                      ),
+                  ),
+                  const SizedBox(width: AppTokens.spacing12),
+                  Expanded(
+                    child: ModernButton(
+                      label: 'Yenile',
+                      icon: Icons.refresh_rounded,
+                      style: ModernButtonStyle.outline,
+                      onPressed: _generateCode,
                     ),
                   ),
                 ],
               ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppTokens.spacing16),
+        ModernButton(
+          label: 'Kodu İptal Et',
+          icon: Icons.block_flipped,
+          style: ModernButtonStyle.ghost,
+          color: AppTokens.errorLight,
+          onPressed: _deactivateCode,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInfoCard() {
+    return ModernCard(
+      color: AppTokens.primaryLightSoft.withOpacity(0.5),
+      border: const BorderSide(color: AppTokens.primaryLightSoft),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline_rounded, color: AppTokens.primaryLight, size: 20),
+          const SizedBox(width: AppTokens.spacing12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Güvenlik Notu',
+                  style: TextStyle(fontWeight: FontWeight.bold, color: AppTokens.primaryLight),
+                ),
+                SizedBox(height: AppTokens.spacing4),
+                Text(
+                  'Bu kod paylaşıldığı sürece tüm öğretmenler tarafından kullanılabilir. Yeni bir kod oluşturduğunuzda eski kod otomatik olarak geçersiz sayılır.',
+                  style: TextStyle(fontSize: 13, color: AppTokens.textSecondaryLight, height: 1.4),
+                ),
+              ],
             ),
+          ),
+        ],
+      ),
     );
   }
 }

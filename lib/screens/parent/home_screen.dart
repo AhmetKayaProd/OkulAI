@@ -1,22 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:kresai/services/live_store.dart';
-import 'package:kresai/services/daily_log_store.dart';
-import 'package:kresai/services/feed_store.dart';
-import 'package:kresai/services/registration_store.dart';
-import 'package:kresai/services/app_config_store.dart';
-import 'package:kresai/models/live_session.dart';
-import 'package:kresai/models/daily_log.dart';
-import 'package:kresai/models/feed_item.dart';
-import 'package:kresai/models/app_config.dart';
-import 'package:kresai/theme/tokens.dart';
-import 'package:kresai/screens/parent/live_screen.dart';
-import 'package:kresai/screens/parent/daily_log_screen.dart';
-import 'package:kresai/screens/parent/homework_list_screen.dart';
-import 'package:kresai/screens/parent/exam_list_screen.dart';
-import 'package:kresai/app.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import '../../services/live_store.dart';
+import '../../services/daily_log_store.dart';
+import '../../services/feed_store.dart';
+import '../../services/registration_store.dart';
+import '../../models/live_session.dart';
+import '../../models/daily_log.dart';
+import '../../models/feed_item.dart';
+import '../../theme/tokens.dart';
+import '../../widgets/common/modern_card.dart';
+import '../../widgets/common/modern_button.dart';
+import 'live_screen.dart';
+import 'daily_log_screen.dart';
+import 'homework_list_screen.dart';
+import 'exam_list_screen.dart';
 
-/// Parent Home Screen - Ana Sayfa
 class ParentHomeScreen extends StatefulWidget {
   const ParentHomeScreen({super.key});
 
@@ -36,6 +33,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
   List<FeedItem> _latestFeed = [];
   bool _hasConsent = false;
   String? _childId;
+  String? _studentName;
 
   @override
   void initState() {
@@ -44,6 +42,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
   }
 
   Future<void> _loadData() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
 
     await _liveStore.load();
@@ -54,18 +53,13 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
     final parentReg = _registrationStore.getCurrentParentRegistration();
     if (parentReg != null && mounted) {
       _hasConsent = parentReg.photoConsent;
-
-      // Child ID
+      _studentName = parentReg.studentName;
       _childId = '${parentReg.studentName.toLowerCase().replaceAll(' ', '_')}_global';
-
-      // Live session (demo: global classId)
       _activeSession = _liveStore.getActiveSession('global');
-
-      // Daily summary (today)
+      
       final dateKey = _getDateKey(DateTime.now());
       _dailySummary = _dailyLogStore.summaryForParent(_childId!, dateKey);
 
-      // Latest feed (top 3)
       final allFeed = _feedStore.listForParent(
         parentId: parentReg.id,
         classId: 'global',
@@ -75,7 +69,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
 
       setState(() => _isLoading = false);
     } else {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -83,490 +77,271 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 
-  String _getTypeLabel(DailyLogType type) {
-    switch (type) {
-      case DailyLogType.meal:
-        return 'Yemek';
-      case DailyLogType.nap:
-        return 'Uyku';
-      case DailyLogType.toilet:
-        return 'Tuvalet';
-      case DailyLogType.activity:
-        return 'Etkinlik';
-      case DailyLogType.note:
-        return 'Not';
-    }
-  }
-
-  IconData _getDailyIcon(DailyLogType type) {
-    switch (type) {
-      case DailyLogType.meal:
-        return Icons.restaurant;
-      case DailyLogType.nap:
-        return Icons.bed;
-      case DailyLogType.toilet:
-        return Icons.wc;
-      case DailyLogType.activity:
-        return Icons.palette;
-      case DailyLogType.note:
-        return Icons.note;
-    }
-  }
-
-  String _getStatusLabel(DailyLogStatus status) {
-    switch (status) {
-      case DailyLogStatus.done:
-        return 'Tamamlandı';
-      case DailyLogStatus.partial:
-        return 'Kısmi';
-      case DailyLogStatus.skipped:
-        return 'Atlandı';
-    }
-  }
-
-  Color _getStatusColor(DailyLogStatus status) {
-    switch (status) {
-      case DailyLogStatus.done:
-        return Colors.green;
-      case DailyLogStatus.partial:
-        return Colors.orange;
-      case DailyLogStatus.skipped:
-        return Colors.grey;
-    }
-  }
-
-  IconData _getFeedIcon(FeedItemType type) {
-    switch (type) {
-      case FeedItemType.photo:
-        return Icons.photo;
-      case FeedItemType.video:
-        return Icons.videocam;
-      case FeedItemType.activity:
-        return Icons.directions_run;
-      case FeedItemType.text:
-        return Icons.text_snippet;
-    }
-  }
-
-  String _getFeedTypeLabel(FeedItemType type) {
-    switch (type) {
-      case FeedItemType.photo:
-        return 'Fotoğraf';
-      case FeedItemType.video:
-        return 'Video';
-      case FeedItemType.activity:
-        return 'Aktivite';
-      case FeedItemType.text:
-        return 'Metin';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTokens.backgroundLight,
       appBar: AppBar(
-        title: const Text('Ana Sayfa'),
+        title: const Text('OkulAI'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_none_rounded),
+            onPressed: () {},
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _loadData,
+              color: AppTokens.primaryLight,
               child: ListView(
-                padding: const EdgeInsets.all(AppTokens.spacing16),
+                padding: const EdgeInsets.all(AppTokens.spacing20),
                 children: [
-                  // Live Card (only if active)
+                  _buildHeader(),
+                  const SizedBox(height: AppTokens.spacing24),
                   if (_activeSession != null) ...[
-                    _buildLiveCard(),
-                    const SizedBox(height: AppTokens.spacing16),
+                    _buildLiveAlert(),
+                    const SizedBox(height: AppTokens.spacing24),
                   ],
-
-                  // Today Summary Card
-                  _buildTodaySummaryCard(),
+                  _buildQuickActions(),
+                  const SizedBox(height: AppTokens.spacing32),
+                  _buildSectionHeader('Bugünkü Durum', Icons.child_care_rounded),
                   const SizedBox(height: AppTokens.spacing16),
-
-                  // Homework Shortcut Card
-                  _buildHomeworkCard(context),
+                  _buildDailyStatusGrid(),
+                  const SizedBox(height: AppTokens.spacing32),
+                  _buildSectionHeader('Son Paylaşımlar', Icons.auto_awesome_mosaic_rounded),
                   const SizedBox(height: AppTokens.spacing16),
-
-                  // Exam Shortcut Card
-                  _buildExamCard(context),
-                  const SizedBox(height: AppTokens.spacing16),
-
-                  // Latest Feed Card
-                  _buildLatestFeedCard(),
+                  _buildFeedList(),
                 ],
               ),
             ),
     );
   }
 
-  Widget _buildLiveCard() {
-    // Consent check
-    if (_activeSession!.requiresConsent && !_hasConsent) {
-      return Card(
-        color: Colors.orange.withOpacity(0.1),
-        child: Padding(
-          padding: const EdgeInsets.all(AppTokens.spacing16),
-          child: Row(
-            children: [
-              const Icon(Icons.lock_outline, color: Colors.orange),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Text(
-                  'Canlı yayın aktif ancak izin gerekli',
-                  style: TextStyle(fontWeight: FontWeight.w500),
-                ),
-              ),
-              TextButton(
-                onPressed: () {
-                  // Navigate to settings
-                  Navigator.pushNamed(context, '/parent/settings');
-                },
-                child: const Text('Ayarlar'),
-              ),
-            ],
+  Widget _buildHeader() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Merhaba, ${_studentName ?? "Veli"}',
+          style: const TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: AppTokens.textPrimaryLight,
+            letterSpacing: -0.5,
           ),
         ),
-      );
-    }
+        const Text(
+          'Çocuğunuzun bugünkü aktivitelerini buradan takip edebilirsiniz.',
+          style: TextStyle(color: AppTokens.textSecondaryLight, fontSize: 14),
+        ),
+      ],
+    );
+  }
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppTokens.spacing16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+  Widget _buildLiveAlert() {
+    return ModernCard(
+      color: AppTokens.errorLight.withOpacity(0.05),
+      border: const BorderSide(color: AppTokens.errorLight, width: 0.5),
+      onTap: () {
+        if (_hasConsent) {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => LivePlayerStubScreen(session: _activeSession!)));
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Canlı yayın için fotoğraf izni gereklidir.')));
+        }
+      },
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: const BoxDecoration(color: AppTokens.errorLight, shape: BoxShape.circle),
+            child: const Icon(Icons.videocam_rounded, color: Colors.white, size: 20),
+          ),
+          const SizedBox(width: 16),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 12,
-                  height: 12,
-                  decoration: const BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                const Text(
-                  'CANLI YAYIN',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.red,
-                  ),
-                ),
+                Text('Canlı Yayın Aktif', style: TextStyle(fontWeight: FontWeight.bold, color: AppTokens.textPrimaryLight)),
+                Text('Sınıfı canlı izlemek için tıklayın.', style: TextStyle(fontSize: 12, color: AppTokens.textSecondaryLight)),
               ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              _activeSession!.title,
-              style: const TextStyle(fontSize: 14),
-            ),
-            const SizedBox(height: AppTokens.spacing12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => LivePlayerStubScreen(session: _activeSession!),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.play_arrow),
-                label: const Text('İzle'),
-              ),
-            ),
-          ],
-        ),
+          ),
+          const Icon(Icons.chevron_right_rounded, color: AppTokens.textTertiaryLight),
+        ],
       ),
     );
   }
 
-  Widget _buildTodaySummaryCard() {
-    final hasAnyLog = _dailySummary.values.any((log) => log != null);
-    
-    // Feature flags
-    final config = AppConfigStore().config;
-    final title = config != null 
-        ? FeatureFlags(config.schoolType).todaySummaryTitle 
-        : 'Bugünkü Özet';
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppTokens.spacing16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: AppTokens.spacing12),
-            if (!hasAnyLog)
-              Text(
-                'Bugün henüz giriş yok',
-                style: TextStyle(color: AppTokens.textSecondaryLight),
-              )
-            else
-              Column(
-                children: [
-                  _buildDailySummaryRow(DailyLogType.meal, _dailySummary[DailyLogType.meal]),
-                  const Divider(height: 20),
-                  _buildDailySummaryRow(DailyLogType.nap, _dailySummary[DailyLogType.nap]),
-                  const Divider(height: 20),
-                  _buildDailySummaryRow(DailyLogType.toilet, _dailySummary[DailyLogType.toilet]),
-                  const Divider(height: 20),
-                  _buildDailySummaryRow(DailyLogType.activity, _dailySummary[DailyLogType.activity]),
-                ],
-              ),
-            const SizedBox(height: AppTokens.spacing12),
-            SizedBox(
-              width: double.infinity,
-              child: TextButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const ParentDailyLogScreen(),
-                    ),
-                  );
-                },
-                child: const Text('Detay'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDailySummaryRow(DailyLogType type, DailyLogItem? log) {
+  Widget _buildQuickActions() {
     return Row(
       children: [
-        Icon(
-          _getDailyIcon(type),
-          color: log != null ? _getStatusColor(log.status) : Colors.grey,
-        ),
-        const SizedBox(width: 12),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                _getTypeLabel(type),
-                style: const TextStyle(fontWeight: FontWeight.w500),
-              ),
-              if (log != null)
-                Text(
-                  '${_getStatusLabel(log.status)}${log.details != null ? ' - ${log.details}' : ''}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: _getStatusColor(log.status),
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                )
-              else
-                Text(
-                  'Giriş yok',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppTokens.textSecondaryLight,
-                  ),
-                ),
-            ],
+          child: ModernCard(
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ParentHomeworkListScreen())),
+            child: const Column(
+              children: [
+                Icon(Icons.edit_calendar_rounded, color: Colors.purple),
+                SizedBox(height: 8),
+                Text('Ödevler', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: ModernCard(
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ParentExamListScreen())),
+            child: const Column(
+              children: [
+                Icon(Icons.quiz_rounded, color: Colors.blue),
+                SizedBox(height: 8),
+                Text('Sınavlar', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: ModernCard(
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ParentDailyLogScreen())),
+            child: const Column(
+              children: [
+                Icon(Icons.history_rounded, color: Colors.green),
+                SizedBox(height: 8),
+                Text('Geçmiş', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+              ],
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildLatestFeedCard() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppTokens.spacing16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Son Paylaşımlar',
+  Widget _buildSectionHeader(String title, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: AppTokens.textPrimaryLight),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTokens.textPrimaryLight),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDailyStatusGrid() {
+    return GridView.count(
+      crossAxisCount: 2,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      mainAxisSpacing: 12,
+      crossAxisSpacing: 12,
+      childAspectRatio: 2.5,
+      children: [
+        _buildStatusItem(DailyLogType.meal, Icons.restaurant_rounded, Colors.orange),
+        _buildStatusItem(DailyLogType.nap, Icons.bedtime_rounded, Colors.indigo),
+        _buildStatusItem(DailyLogType.toilet, Icons.wc_rounded, Colors.teal),
+        _buildStatusItem(DailyLogType.activity, Icons.palette_rounded, Colors.pink),
+      ],
+    );
+  }
+
+  Widget _buildStatusItem(DailyLogType type, IconData icon, Color color) {
+    final log = _dailySummary[type];
+    final isDone = log != null && log.status == DailyLogStatus.done;
+
+    return ModernCard(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: isDone ? color : AppTokens.textTertiaryLight),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              _getTypeLabel(type),
               style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600, 
+                fontSize: 13,
+                color: isDone ? AppTokens.textPrimaryLight : AppTokens.textTertiaryLight
               ),
             ),
-            const SizedBox(height: AppTokens.spacing12),
-            if (_latestFeed.isEmpty)
-              Text(
-                'Henüz paylaşım yok',
-                style: TextStyle(color: AppTokens.textSecondaryLight),
-              )
-            else
-              Column(
-                children: _latestFeed.map((item) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Row(
+          ),
+          if (isDone) const Icon(Icons.check_circle_rounded, size: 16, color: AppTokens.successLight),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeedList() {
+    if (_latestFeed.isEmpty) {
+      return const ModernCard(
+        child: Center(child: Text('Henüz paylaşım yok.', style: TextStyle(color: AppTokens.textTertiaryLight))),
+      );
+    }
+
+    return Column(
+      children: _latestFeed.map((item) => Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: ModernCard(
+          padding: EdgeInsets.zero,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (item.type == FeedItemType.photo && item.mediaUrl != null)
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(AppTokens.radiusMedium)),
+                  child: Image.network(
+                    item.mediaUrl!,
+                    height: 180,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      height: 180, 
+                      color: AppTokens.backgroundLight,
+                      child: const Icon(Icons.image_not_supported_outlined, color: AppTokens.textTertiaryLight),
+                    ),
+                  ),
+                ),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       children: [
-                        CircleAvatar(
-                          radius: 20,
-                          backgroundColor: AppTokens.primaryLight.withOpacity(0.1),
-                          child: Icon(
-                            _getFeedIcon(item.type),
-                            color: AppTokens.primaryLight,
-                            size: 20,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _getFeedTypeLabel(item.type),
-                                style: const TextStyle(fontWeight: FontWeight.w500),
-                              ),
-                              if (item.textContent != null)
-                                Text(
-                                  item.textContent!,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: AppTokens.textSecondaryLight,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
+                        const CircleAvatar(radius: 12, backgroundColor: AppTokens.primaryLightSoft, child: Icon(Icons.person, size: 14, color: AppTokens.primaryLight)),
+                        const SizedBox(width: 8),
+                        const Text('Öğretmen', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                        const Spacer(),
+                        Text('2s önce', style: const TextStyle(color: AppTokens.textTertiaryLight, fontSize: 11)),
                       ],
                     ),
-                  );
-                }).toList(),
-              ),
-            const SizedBox(height: AppTokens.spacing8),
-            SizedBox(
-              width: double.infinity,
-              child: TextButton(
-                onPressed: () {
-                  // Navigate to feed tab (index 1)
-                  // Parent shell tab değiştir - bu basit bir workaround
-                  Navigator.pop(context); // Close if nested
-                },
-                child: const Text('Tümünü Gör'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHomeworkCard(BuildContext context) {
-    return Card(
-      color: Colors.blue.withOpacity(0.1),
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const ParentHomeworkListScreen(),
-            ),
-          );
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(AppTokens.spacing16),
-          child: Row(
-            children: [
-              const Icon(Icons.assignment, color: Colors.blue, size: 32),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text(
-                      'Ödevler',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Ödevleri görüntüle ve gönder',
-                      style: TextStyle(
-                        color: Colors.black87,
-                        fontSize: 14,
-                      ),
-                    ),
+                    const SizedBox(height: 12),
+                    Text(item.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                    const SizedBox(height: 4),
+                    Text(item.description, style: const TextStyle(color: AppTokens.textSecondaryLight, fontSize: 13)),
                   ],
                 ),
               ),
-              const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.blue),
             ],
           ),
         ),
-      ),
+      )).toList(),
     );
   }
 
-  Widget _buildExamCard(BuildContext context) {
-    return Card(
-      color: Colors.purple.withOpacity(0.1),
-      child: InkWell(
-        onTap: () {
-          final parentId = TEST_LAB_MODE ? 'mock_parent_id' : FirebaseAuth.instance.currentUser?.uid ?? '';
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => ExamListScreen(
-                studentId: _childId ?? 'mock_student_id',
-                parentId: parentId,
-                classId: 'global',
-              ),
-            ),
-          );
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(AppTokens.spacing16),
-          child: Row(
-            children: [
-              const Icon(Icons.quiz, color: Colors.purple, size: 32),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text(
-                      'Sınavlar',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.purple,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Sınavları görüntüle ve çöz',
-                      style: TextStyle(
-                        color: Colors.black87,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.purple),
-            ],
-          ),
-        ),
-      ),
-    );
+  String _getTypeLabel(DailyLogType type) {
+    switch (type) {
+      case DailyLogType.meal: return 'Yemek';
+      case DailyLogType.nap: return 'Uyku';
+      case DailyLogType.toilet: return 'Tuvalet';
+      case DailyLogType.activity: return 'Etkinlik';
+      case DailyLogType.note: return 'Not';
+    }
   }
+
 }

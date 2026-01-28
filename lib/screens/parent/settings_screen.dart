@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:kresai/services/registration_store.dart';
-import 'package:kresai/services/app_config_store.dart';
-import 'package:kresai/services/auth_service.dart';
-import 'package:kresai/screens/parent/profile_screen.dart';
-import 'package:kresai/screens/common/notification_preferences_screen.dart';
-import 'package:kresai/screens/common/about_screen.dart';
-import 'package:kresai/app.dart';
-import 'package:kresai/theme/tokens.dart';
+import '../../services/registration_store.dart';
+import '../../services/auth_service.dart';
+import '../../theme/tokens.dart';
+import '../../widgets/common/modern_card.dart';
+import '../../widgets/common/modern_button.dart';
+import 'profile_screen.dart';
+import '../common/notification_preferences_screen.dart';
+import '../common/about_screen.dart';
 
-/// Parent Settings Screen
 class ParentSettingsScreen extends StatefulWidget {
   const ParentSettingsScreen({super.key});
 
@@ -41,7 +40,7 @@ class _ParentSettingsScreenState extends State<ParentSettingsScreen> {
         _isLoading = false;
       });
     } else {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -59,19 +58,17 @@ class _ParentSettingsScreenState extends State<ParentSettingsScreen> {
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              value
-                  ? 'Foto/Video izni açıldı'
-                  : 'Foto/Video izni kapatıldı',
-            ),
-            backgroundColor: value ? Colors.green : Colors.orange,
+            content: Text(value ? '✅ Foto/Video izni açıldı' : '⚠️ Foto/Video izni kapatıldı'),
+            backgroundColor: value ? AppTokens.successLight : AppTokens.warningLight,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Güncelleme başarısız'),
-            backgroundColor: Colors.red,
+            content: Text('❌ Güncelleme başarısız'),
+            backgroundColor: AppTokens.errorLight,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
@@ -81,313 +78,184 @@ class _ParentSettingsScreenState extends State<ParentSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTokens.backgroundLight,
       appBar: AppBar(
         title: const Text('Ayarlar'),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
-              padding: const EdgeInsets.all(AppTokens.spacing16),
+              padding: const EdgeInsets.all(AppTokens.spacing20),
               children: [
-                // Profile Card
-                Card(
-                  child: ListTile(
-                    leading: Icon(
-                      Icons.person,
-                      color: AppTokens.primaryLight,
-                    ),
-                    title: const Text('Profil Bilgilerim'),
-                    subtitle: const Text('Ad, email ve sınıf bilgisi'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const ParentProfileScreen(),
-                        ),
-                      );
-                    },
+                const Text(
+                  'HESAP',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTokens.textTertiaryLight, letterSpacing: 1),
+                ),
+                const SizedBox(height: 12),
+                ModernCard(
+                  padding: EdgeInsets.zero,
+                  child: Column(
+                    children: [
+                      _buildSettingItem(
+                        context,
+                        icon: Icons.person_outline_rounded,
+                        title: 'Profil Bilgilerim',
+                        subtitle: 'Ad, email ve öğrenci bilgisi',
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ParentProfileScreen())),
+                      ),
+                      const Divider(height: 1),
+                      _buildSettingItem(
+                        context,
+                        icon: Icons.notifications_none_rounded,
+                        title: 'Bildirim Tercihleri',
+                        subtitle: 'Hangi bildirimleri almak istediğinizi seçin',
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationPreferencesScreen())),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: AppTokens.spacing16),
-                
-                // Notification Preferences Card
-                Card(
-                  child: ListTile(
-                    leading: Icon(
-                      Icons.notifications,
-                      color: AppTokens.primaryLight,
-                    ),
-                    title: const Text('Bildirim Tercihleri'),
-                    subtitle: const Text('Hangi bildirimleri almak istediğinizi seçin'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const NotificationPreferencesScreen(),
-                        ),
-                      );
-                    },
-                  ),
+                const SizedBox(height: AppTokens.spacing32),
+                const Text(
+                  'GİZLİLİK',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTokens.textTertiaryLight, letterSpacing: 1),
                 ),
-                const SizedBox(height: AppTokens.spacing16),
-                
-                // Foto/Video İzni Section
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppTokens.spacing16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.photo_camera,
-                              color: AppTokens.primaryLight,
-                            ),
-                            const SizedBox(width: 12),
-                            const Expanded(
-                              child: Text(
-                                'Foto/Video İzni',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: AppTokens.spacing16),
-                        SwitchListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: const Text(
-                            'Foto/video paylaşımlarını görmek ve canlı yayına katılmak için izin veriyorum',
-                          ),
-                          subtitle: Padding(
-                            padding: const EdgeInsets.only(top: 8),
+                const SizedBox(height: 12),
+                ModernCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.photo_camera_rounded, color: AppTokens.primaryLight, size: 20),
+                          const SizedBox(width: 12),
+                          const Expanded(
                             child: Text(
-                              _photoConsent
-                                  ? 'Aktif: Foto/video içeriklerini ve canlı yayınları görebilirsiniz'
-                                  : 'Kapalı: Foto/video içerikleri ve canlı yayın engellenecek',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: _photoConsent
-                                    ? Colors.green
-                                    : AppTokens.textSecondaryLight,
-                              ),
+                              'Foto/Video İzni',
+                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                             ),
                           ),
-                          value: _photoConsent,
-                          onChanged: _isSaving ? null : _updateConsent,
-                        ),
-                        if (!_photoConsent) ...[
-                          const SizedBox(height: AppTokens.spacing12),
-                          Container(
-                            padding: const EdgeInsets.all(AppTokens.spacing12),
-                            decoration: BoxDecoration(
-                              color: Colors.orange.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.orange),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.info_outline,
-                                  color: Colors.orange,
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    'İzin kapalıyken feed\'de foto/video içerikleri ve canlı yayınlar görüntülenemez',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.orange.shade700,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                          Switch(
+                            value: _photoConsent,
+                            onChanged: _isSaving ? null : _updateConsent,
+                            activeColor: AppTokens.successLight,
                           ),
                         ],
-                      ],
-                    ),
-                  ),
-                ),
-                
-                // About Card
-                const SizedBox(height: AppTokens.spacing16),
-                Card(
-                  child: ListTile(
-                    leading: Icon(
-                      Icons.info,
-                      color: AppTokens.primaryLight,
-                    ),
-                    title: const Text('Hakkında'),
-                    subtitle: const Text('Uygulama bilgileri ve versiyon'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const AboutScreen(),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        _photoConsent
+                            ? 'Foto/video içeriklerini ve canlı yayınları görebilirsiniz.'
+                            : 'Foto/video içerikleri ve canlı yayın engellenecek.',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: _photoConsent ? AppTokens.successLight : AppTokens.textSecondaryLight,
                         ),
-                      );
-                    },
-                  ),
-                ),
-                
-                // Logout Section
-                const SizedBox(height: AppTokens.spacing24),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppTokens.spacing16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.logout,
-                              color: AppTokens.errorLight,
-                            ),
-                            const SizedBox(width: 12),
-                            const Text(
-                              'Hesap',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: AppTokens.spacing16),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: () async {
-                              final confirm = await showDialog<bool>(
-                                context: context,
-                                builder: (context) => AlertDialog(
-                                  title: const Text('Çıkış Yap?'),
-                                  content: const Text('Hesabınızdan çıkış yapmak istediğinize emin misiniz?'),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(context, false),
-                                      child: const Text('İptal'),
-                                    ),
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(context, true),
-                                      style: TextButton.styleFrom(
-                                        foregroundColor: AppTokens.errorLight,
-                                      ),
-                                      child: const Text('Çıkış Yap'),
-                                    ),
-                                  ],
-                                ),
-                              );
-                              
-                              if (confirm == true && mounted) {
-                                try {
-                                  final authService = AuthService();
-                                  await authService.signOut();
-                                  // Auth state change will automatically navigate to Login
-                                } catch (e) {
-                                  if (mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('Çıkış yapılamadı: ${e.toString()}'),
-                                        backgroundColor: AppTokens.errorLight,
-                                      ),
-                                    );
-                                  }
-                                }
-                              }
-                            },
-                            icon: const Icon(Icons.logout),
-                            label: const Text('Çıkış Yap'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTokens.errorLight,
-                              foregroundColor: Colors.white,
-                            ),
+                      ),
+                      if (!_photoConsent) ...[
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppTokens.warningLight.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(AppTokens.radiusSmall),
+                            border: Border.all(color: AppTokens.warningLight.withOpacity(0.3)),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                
-                // Debug reset (kDebugMode only)
-                const SizedBox(height: AppTokens.spacing24),
-                if (const bool.fromEnvironment('dart.vm.product') == false)
-                  Card(
-                    color: Colors.orange.withOpacity(0.1),
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppTokens.spacing16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Row(
+                          child: const Row(
                             children: [
-                              Icon(Icons.bug_report, color: Colors.orange),
-                              SizedBox(width: 12),
-                              Text(
-                                'Debug Tools',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
+                              Icon(Icons.info_outline_rounded, color: AppTokens.warningLight, size: 18),
+                              SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  'İzin kapalıyken feed\'de foto/video içerikleri görüntülenemez',
+                                  style: TextStyle(fontSize: 12, color: AppTokens.warningLight),
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: AppTokens.spacing16),
-                          SizedBox(
-                            width: double.infinity,
-                            child: OutlinedButton.icon(
-                              onPressed: () async {
-                                final confirm = await showDialog<bool>(
-                                  context: context,
-                                  builder: (context) => AlertDialog(
-                                    title: const Text('Okul Tipini Sıfırla?'),
-                                    content: const Text('Bu işlem sonrası okul tipi seçim ekranına döneceksiniz.'),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () => Navigator.pop(context, false),
-                                        child: const Text('İptal'),
-                                      ),
-                                      TextButton(
-                                        onPressed: () => Navigator.pop(context, true),
-                                        child: const Text('Sıfırla'),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                                
-                                if (confirm == true && mounted) {
-                                  final configStore = AppConfigStore();
-                                  await configStore.resetConfigForDev();
-                                  
-                                  if (mounted) {
-                                    Navigator.pushAndRemoveUntil(
-                                      context,
-                                      MaterialPageRoute(builder: (_) => const App()),
-                                      (_) => false,
-                                    );
-                                  }
-                                }
-                              },
-                              icon: const Icon(Icons.refresh),
-                              label: const Text('Okul Tipini Sıfırla (Debug)'),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: Colors.orange,
-                                side: const BorderSide(color: Colors.orange),
-                              ),
-                            ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppTokens.spacing32),
+                const Text(
+                  'UYGULAMA',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTokens.textTertiaryLight, letterSpacing: 1),
+                ),
+                const SizedBox(height: 12),
+                ModernCard(
+                  padding: EdgeInsets.zero,
+                  child: _buildSettingItem(
+                    context,
+                    icon: Icons.info_outline_rounded,
+                    title: 'Hakkında',
+                    subtitle: 'Uygulama bilgileri ve versiyon',
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutScreen())),
+                  ),
+                ),
+                const SizedBox(height: AppTokens.spacing48),
+                ModernButton(
+                  label: 'Çıkış Yap',
+                  icon: Icons.logout_rounded,
+                  style: ModernButtonStyle.outline,
+                  color: AppTokens.errorLight,
+                  onPressed: () async {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('Çıkış Yap?'),
+                        content: const Text('Hesabınızdan çıkış yapmak istediğinize emin misiniz?'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('İptal'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            style: TextButton.styleFrom(foregroundColor: AppTokens.errorLight),
+                            child: const Text('Çıkış Yap'),
                           ),
                         ],
                       ),
-                    ),
-                  ),
+                    );
+
+                    if (confirm == true && context.mounted) {
+                      try {
+                        final authService = AuthService();
+                        await authService.signOut();
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Çıkış yapılamadı: ${e.toString()}'),
+                              backgroundColor: AppTokens.errorLight,
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
+                      }
+                    }
+                  },
+                ),
               ],
             ),
+    );
+  }
+
+  Widget _buildSettingItem(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      leading: Icon(icon, color: AppTokens.primaryLight),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+      subtitle: Text(subtitle, style: const TextStyle(fontSize: 13, color: AppTokens.textSecondaryLight)),
+      trailing: const Icon(Icons.chevron_right_rounded, color: AppTokens.textTertiaryLight),
+      onTap: onTap,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
     );
   }
 }

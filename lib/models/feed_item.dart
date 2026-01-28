@@ -23,6 +23,8 @@ class FeedItem {
   final bool requiresConsent;
   final String? mediaUrl; // local asset or file path
   final String? textContent;
+  final String? title;
+  final String? description;
 
   const FeedItem({
     required this.id,
@@ -34,6 +36,8 @@ class FeedItem {
     required this.requiresConsent,
     this.mediaUrl,
     this.textContent,
+    this.title,
+    this.description,
   });
 
   /// JSON'dan model oluştur
@@ -52,6 +56,8 @@ class FeedItem {
       requiresConsent: json['requiresConsent'] as bool? ?? false,
       mediaUrl: json['mediaUrl'] as String?,
       textContent: json['textContent'] as String?,
+      title: json['title'] as String?,
+      description: json['description'] as String?,
     );
   }
 
@@ -67,6 +73,8 @@ class FeedItem {
       'requiresConsent': requiresConsent,
       'mediaUrl': mediaUrl,
       'textContent': textContent,
+      'title': title,
+      'description': description,
     };
   }
 

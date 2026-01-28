@@ -472,9 +472,7 @@ class _HomeworkReviewScreenState extends State<HomeworkReviewScreen> {
             child: const Text('İptal'),
           ),
           TextButton(
-            on
-
-Pressed: () async {
+            onPressed: () async {
               final score = int.tryParse(controller.text);
               if (score == null || score < 0 || score > widget.homework.option.gradingRubric.maxScore) {
                 ScaffoldMessenger.of(context).showSnackBar(
