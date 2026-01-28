@@ -10,6 +10,9 @@ workflows:
       events:
         - push
         - pull_request
+    # Integration definition required for auth: integration
+    integrations:
+      app_store_connect: OkulAI
     scripts:
       - name: Pre-build script
         script: |
