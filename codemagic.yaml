@@ -3,6 +3,9 @@ workflows:
     name: Default Workflow
     instance_type: mac_mini_m2
     environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.ahmetkaya.okulai
       flutter: stable
       xcode: latest
       cocoapods: default
@@ -16,26 +19,18 @@ workflows:
       - name: Initialize keychain
         script: |
           keychain initialize
-      - name: Fetch signing files
+      - name: Set up provisioning profiles
         script: |
-          # Fetch provisioning profiles and certificates
-          # Creates them if they don't exist
           app-store-connect fetch-signing-files "com.ahmetkaya.okulai" --type IOS_APP_STORE --create
-      - name: Add certificates to keychain
-        script: |
           keychain add-certificates
       - name: Set up code signing settings on Xcode project
         script: |
           xcode-project use-profiles
       - name: Pre-build script
         script: |
-          # Create GoogleService-Info.plist from environment variable
           echo "$GOOGLE_SERVICE_INFO_PLIST" > $CM_BUILD_DIR/ios/Runner/GoogleService-Info.plist
-          
-          echo "Pre-build setup completed successfully"
       - name: Build iOS
         script: |
-          # Build IPA for distribution
           flutter build ipa --release \
             --export-options-plist=/Users/builder/export_options.plist
     artifacts:
