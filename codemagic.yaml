@@ -10,10 +10,23 @@ workflows:
       events:
         - push
         - pull_request
-    # Integration definition required for auth: integration
     integrations:
       app_store_connect: OkulAI
     scripts:
+      - name: Initialize keychain
+        script: |
+          keychain initialize
+      - name: Fetch signing files
+        script: |
+          # Fetch provisioning profiles and certificates
+          # Creates them if they don't exist
+          app-store-connect fetch-signing-files "com.ahmetkaya.okulai" --type IOS_APP_STORE --create
+      - name: Add certificates to keychain
+        script: |
+          keychain add-certificates
+      - name: Set up code signing settings on Xcode project
+        script: |
+          xcode-project use-profiles
       - name: Pre-build script
         script: |
           # Create GoogleService-Info.plist from environment variable
@@ -22,7 +35,9 @@ workflows:
           echo "Pre-build setup completed successfully"
       - name: Build iOS
         script: |
-          flutter build ios --release --no-codesign
+          # Build IPA for distribution
+          flutter build ipa --release \
+            --export-options-plist=/Users/builder/export_options.plist
     artifacts:
       - build/ios/ipa/*.ipa
       - build/ios/Runner.app
