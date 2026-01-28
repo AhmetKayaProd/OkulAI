@@ -1,0 +1,9 @@
+Apple Developer Account Information
+====================================
+
+Email: meymandar02@gmail.com
+Team ID: 32NU52YYVF
+Bundle ID: com.ahmetkaya.okulai
+Account Type: Individual
+Program: Apple Developer Program
+Renewal Date: December 16, 2026

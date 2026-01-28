@@ -1,0 +1,13 @@
+App Store Connect API Information
+===================================
+
+Issuer ID: 3d6c551b-7166-4a25-8eb1-a7bffd672e5e
+
+Available API Keys:
+1. testfligt - Key ID: H8BRFMAWRU (Admin access, Last used: Dec 28, 2025)
+2. adm - Key ID: D8U953Z9MN (Admin access, Last used: Dec 22, 2025)
+3. PlaybookAdmin - Key ID: F8DC9WK5Q4 (Admin access, Last used: Dec 22, 2025)
+4. factory - Key ID: NL74PMG52L (Admin access, Last used: Dec 22, 2025)
+5. iz - Key ID: TYY3XFHXT3 (Admin access, Last used: Dec 21, 2025)
+
+Recommended Key for OkulAI: testfligt (H8BRFMAWRU) - Most recently used
