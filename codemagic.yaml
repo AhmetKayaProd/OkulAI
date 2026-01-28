@@ -13,25 +13,16 @@ workflows:
     scripts:
       - name: Pre-build script
         script: |
-          # Clean up broken build-tools directory
-          rm -rf /usr/local/share/android-sdk/build-tools/35.0.0
-          rm -rf /usr/local/share/android-sdk/.temp/
-          
-          # Install missing build-tools using sdkmanager
-          yes | /usr/local/share/android-sdk/cmdline-tools/latest/bin/sdkmanager "build-tools;35.0.0"
-          
           # Create GoogleService-Info.plist from environment variable
           echo "$GOOGLE_SERVICE_INFO_PLIST" > $CM_BUILD_DIR/ios/Runner/GoogleService-Info.plist
           
           echo "Pre-build setup completed successfully"
-      - name: Build
+      - name: Build iOS
         script: |
-          flutter build apk --release
-          flutter build ios --release
+          flutter build ios --release --no-codesign
     artifacts:
-      - build/**/outputs/**/*.apk
-      - build/**/outputs/**/*.aab
       - build/ios/ipa/*.ipa
+      - build/ios/Runner.app
     publishing:
       email:
         recipients:
