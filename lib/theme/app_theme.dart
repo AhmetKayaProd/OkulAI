@@ -43,7 +43,7 @@ class AppTheme {
       ),
       
       // Card Theme (Flat with subtle border)
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: AppTokens.surfaceLight,
         elevation: 0,
         margin: EdgeInsets.zero,
