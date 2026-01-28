@@ -3,8 +3,9 @@ workflows:
     name: Default Workflow
     instance_type: mac_mini_m2
     environment:
-      # ios_signing REMOVED because it fails if profile doesn't exist yet.
-      # We use scripts to create it dynamically.
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.ahmetkaya.okulai
       flutter: stable
       xcode: latest
       cocoapods: default
@@ -20,7 +21,6 @@ workflows:
           keychain initialize
       - name: Fetch signing files
         script: |
-          # Create certificates and profiles if they don't exist
           app-store-connect fetch-signing-files "com.ahmetkaya.okulai" --type IOS_APP_STORE --create
           keychain add-certificates
       - name: Set up code signing settings on Xcode project
