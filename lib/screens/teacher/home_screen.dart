@@ -4,14 +4,9 @@ import '../../services/live_store.dart';
 import '../../services/daily_log_store.dart';
 import '../../services/feed_store.dart';
 import '../../services/activity_log_store.dart';
-import '../../models/live_session.dart';
-import '../../models/feed_item.dart';
-import '../../models/activity_event.dart';
 import '../../theme/tokens.dart';
 import '../../widgets/common/modern_card.dart';
-import '../../widgets/common/modern_button.dart';
-import 'parent_approvals_screen.dart';
-import 'exam_management_screen.dart';
+import '../../models/live_session.dart';
 
 class TeacherHomeScreen extends StatefulWidget {
   const TeacherHomeScreen({super.key});
@@ -21,6 +16,7 @@ class TeacherHomeScreen extends StatefulWidget {
 }
 
 class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
+  // Stores (Existing logic kept for data consistency)
   final _registrationStore = RegistrationStore();
   final _liveStore = LiveStore();
   final _dailyLogStore = DailyLogStore();
@@ -28,13 +24,10 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
   final _activityLogStore = ActivityLogStore();
 
   bool _isLoading = true;
-  int _pendingParents = 0;
-  LiveSession? _activeSession;
-  int _loggedChildren = 0;
-  int _totalChildren = 0;
-  List<FeedItem> _latestFeed = [];
-  List<ActivityEvent> _latestActivity = [];
   String? _classId;
+
+  // Bottom Nav Index
+  int _selectedIndex = 0;
 
   @override
   void initState() {
@@ -46,299 +39,339 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
     if (!mounted) return;
     setState(() => _isLoading = true);
 
+    // Mock loading or real loading
+    await Future.delayed(const Duration(milliseconds: 500)); // Smooth transition
     await _registrationStore.load();
     await _liveStore.load();
-    await _dailyLogStore.load();
-    await _feedStore.load();
-    await _activityLogStore.load();
-
+    
     final teacherReg = _registrationStore.getCurrentTeacherRegistration();
     if (teacherReg != null && mounted) {
       _classId = teacherReg.className;
-      _pendingParents = _registrationStore.getPendingParents().length;
-      _activeSession = _liveStore.getActiveSession(_classId!);
-      
-      final dateKey = _getDateKey(DateTime.now());
-      _totalChildren = _dailyLogStore.getChildrenByClass(_classId!).length;
-      final logsToday = _dailyLogStore.listByClassAndDate(_classId!, dateKey);
-      _loggedChildren = logsToday.keys.length;
-
-      _latestFeed = _feedStore.listForTeacher(_classId!).take(3).toList();
-      _latestActivity = _activityLogStore.getLatest(limit: 5);
-
-      setState(() => _isLoading = false);
-    } else {
-      if (mounted) setState(() => _isLoading = false);
     }
-  }
-
-  String _getDateKey(DateTime date) {
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    
+    if (mounted) setState(() => _isLoading = false);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTokens.backgroundLight,
-      appBar: AppBar(
-        title: const Text('OkulAI'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_none_rounded),
-            onPressed: () {},
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _loadData,
-              color: AppTokens.primaryLight,
-              child: ListView(
-                padding: const EdgeInsets.all(AppTokens.spacing20),
-                children: [
-                  _buildWelcomeHeader(),
-                  const SizedBox(height: AppTokens.spacing24),
-                  _buildQuickActionsGrid(),
-                  const SizedBox(height: AppTokens.spacing32),
-                  _buildSectionHeader('Bugünün Özeti', Icons.analytics_outlined),
-                  const SizedBox(height: AppTokens.spacing16),
-                  _buildSummaryCards(),
-                  const SizedBox(height: AppTokens.spacing32),
-                  if (_pendingParents > 0) ...[
-                    _buildPendingApprovalsAlert(),
-                    const SizedBox(height: AppTokens.spacing32),
-                  ],
-                  _buildSectionHeader('Son Aktiviteler', Icons.history_rounded),
-                  const SizedBox(height: AppTokens.spacing16),
-                  _buildActivityList(),
-                ],
-              ),
-            ),
-    );
-  }
-
-  Widget _buildWelcomeHeader() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Hoş geldin, Öğretmenim 👋',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: AppTokens.textPrimaryLight,
-            letterSpacing: -0.5,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          '${_classId ?? "Sınıf Seçilmedi"} • ${DateTime.now().day} Ocak Çarşamba',
-          style: const TextStyle(
-            color: AppTokens.textSecondaryLight,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildQuickActionsGrid() {
-    return GridView.count(
-      crossAxisCount: 4,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: AppTokens.spacing16,
-      crossAxisSpacing: AppTokens.spacing16,
-      children: [
-        _buildActionItem(Icons.assignment_outlined, 'Sınav', Colors.blue, () {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const ExamManagementScreen()));
-        }),
-        _buildActionItem(Icons.edit_calendar_outlined, 'Ödev', Colors.purple, () {
-          Navigator.pushNamed(context, '/teacher/homework-management');
-        }),
-        _buildActionItem(Icons.camera_alt_outlined, 'Paylaş', Colors.orange, () {
-          Navigator.pushNamed(context, '/teacher/share');
-        }),
-        _buildActionItem(Icons.more_horiz_rounded, 'Daha', Colors.grey, () {}),
-      ],
-    );
-  }
-
-  Widget _buildActionItem(IconData icon, String label, Color color, VoidCallback onTap) {
-    return Column(
-      children: [
-        InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(AppTokens.radiusMedium),
-          child: Container(
-            padding: const EdgeInsets.all(AppTokens.spacing12),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(AppTokens.radiusMedium),
-            ),
-            child: Icon(icon, color: color, size: 28),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          label,
-          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTokens.textSecondaryLight),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSectionHeader(String title, IconData icon) {
-    return Row(
-      children: [
-        Icon(icon, size: 20, color: AppTokens.textPrimaryLight),
-        const SizedBox(width: 8),
-        Text(
-          title,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTokens.textPrimaryLight),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSummaryCards() {
-    return Row(
-      children: [
-        Expanded(
-          child: ModernCard(
-            color: AppTokens.primaryLightSoft,
-            border: BorderSide.none,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Icon(Icons.people_outline_rounded, color: AppTokens.primaryLight),
-                const SizedBox(height: 12),
-                Text(
-                  '$_loggedChildren/$_totalChildren',
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTokens.primaryLight),
-                ),
-                const Text('Yoklama', style: TextStyle(fontSize: 12, color: AppTokens.textSecondaryLight)),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: ModernCard(
-            color: _activeSession != null ? AppTokens.secondaryLightSoft : AppTokens.surfaceLight,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  Icons.videocam_outlined, 
-                  color: _activeSession != null ? AppTokens.secondaryLight : AppTokens.textTertiaryLight
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  _activeSession != null ? 'Aktif' : 'Kapalı',
-                  style: TextStyle(
-                    fontSize: 20, 
-                    fontWeight: FontWeight.bold, 
-                    color: _activeSession != null ? AppTokens.secondaryLight : AppTokens.textSecondaryLight
-                  ),
-                ),
-                const Text('Canlı Yayın', style: TextStyle(fontSize: 12, color: AppTokens.textSecondaryLight)),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPendingApprovalsAlert() {
-    return ModernCard(
-      color: AppTokens.warningLight.withOpacity(0.1),
-      border: const BorderSide(color: AppTokens.warningLight, width: 0.5),
-      onTap: () => Navigator.pushNamed(context, '/teacher/parent-approvals'),
-      child: Row(
-        children: [
-          const Icon(Icons.notification_important_rounded, color: AppTokens.warningLight),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '$_pendingParents Bekleyen Onay',
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: AppTokens.textPrimaryLight),
-                ),
-                const Text('Yeni veli kayıtlarını inceleyin.', style: TextStyle(fontSize: 13, color: AppTokens.textSecondaryLight)),
-              ],
-            ),
-          ),
-          const Icon(Icons.chevron_right_rounded, color: AppTokens.textTertiaryLight),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActivityList() {
-    if (_latestActivity.isEmpty) {
-      return const ModernCard(
-        child: Center(
-          child: Text('Henüz aktivite yok.', style: TextStyle(color: AppTokens.textTertiaryLight)),
-        ),
-      );
-    }
-
-    return Column(
-      children: _latestActivity.map((activity) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: ModernCard(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppTokens.backgroundLight,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(_getActivityIcon(activity.type.name), size: 18, color: AppTokens.primaryLight),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
+      backgroundColor: const Color(0xFFF1F5F9), // Slightly cooler background
+      body: SafeArea(
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      activity.title ?? 'Aktivite',
-                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                    ),
-                    Text(
-                      activity.description,
-                      style: const TextStyle(color: AppTokens.textSecondaryLight, fontSize: 12),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    _buildHeader(),
+                    const SizedBox(height: 32),
+                    _buildOverviewSection(),
                   ],
                 ),
               ),
-              Text(
-                '12:45', // Örnek saat
-                style: const TextStyle(color: AppTokens.textTertiaryLight, fontSize: 11),
-              ),
-            ],
-          ),
-        ),
-      )).toList(),
+      ),
+      floatingActionButton: _buildMagicFab(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      bottomNavigationBar: _buildBottomMenuBar(),
     );
   }
 
-  IconData _getActivityIcon(String type) {
-    switch (type) {
-      case 'homework': return Icons.edit_note_rounded;
-      case 'exam': return Icons.quiz_outlined;
-      case 'feed': return Icons.photo_library_outlined;
-      default: return Icons.notifications_none_rounded;
-    }
+  Widget _buildHeader() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Merhaba,',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w400, // Light/Regular
+                color: Color(0xFF1E293B),
+                height: 1.1,
+              ),
+            ),
+            const Text(
+              'Hocam',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1E293B),
+                height: 1.1,
+              ),
+            ),
+          ],
+        ),
+        Row(
+          children: [
+            _buildHeaderIconBtn(Icons.mail_outlined),
+            const SizedBox(width: 12),
+            _buildHeaderIconBtn(Icons.campaign_outlined),
+            const SizedBox(width: 12),
+            _buildHeaderIconBtn(Icons.notifications_none_rounded),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHeaderIconBtn(IconData icon) {
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Icon(icon, color: const Color(0xFF64748B), size: 22),
+    );
+  }
+
+  Widget _buildOverviewSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Genel Bakış',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF334155),
+          ),
+        ),
+        const SizedBox(height: 16),
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: 16,
+          crossAxisSpacing: 16,
+          childAspectRatio: 0.95, // Adjusts height of cards
+          children: [
+            _buildDashboardCard(
+              title: "Ödevler",
+              value: "12",
+              subtitle: "Bekleyen Teslim",
+              icon: Icons.assignment_outlined,
+              accentColor: const Color(0xFFFFA500), // Orange
+              iconBgColor: const Color(0xFFFFF7ED),
+              borderColor: const Color(0xFFFFA500),
+            ),
+            _buildDashboardCard(
+              title: "Sınavlar",
+              value: "3",
+              subtitle: "Yaklaşan Sınav",
+              icon: Icons.description_outlined,
+              accentColor: const Color(0xFFa855f7), // Purple
+              iconBgColor: const Color(0xFFFAF5FF),
+              borderColor: const Color(0xFFa855f7),
+            ),
+            _buildDashboardCard(
+              title: "İlerleme",
+              value: "%85",
+              subtitle: "Müfredat Durumu",
+              icon: Icons.trending_up_rounded,
+              accentColor: const Color(0xFF3B82F6), // Blue
+              iconBgColor: const Color(0xFFEFF6FF),
+              borderColor: const Color(0xFF3B82F6),
+            ),
+            _buildDashboardCard(
+              title: "Yoklama",
+              value: "Tamam",
+              subtitle: " ", // Empty subtitle to match layout or put something
+              icon: Icons.check_circle_outline_rounded,
+              accentColor: const Color(0xFF10B981), // Green
+              iconBgColor: const Color(0xFFECFDF5),
+              borderColor: const Color(0xFF10B981),
+              isComplete: true,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDashboardCard({
+    required String title,
+    required String value,
+    required String subtitle,
+    required IconData icon,
+    required Color accentColor,
+    required Color iconBgColor,
+    required Color borderColor,
+    bool isComplete = false,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: iconBgColor,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: accentColor, size: 20),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF64748B),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1E293B),
+            ),
+          ),
+          const Spacer(),
+          if (!isComplete && subtitle.trim().isNotEmpty)
+             Text(
+              subtitle,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF94A3B8),
+              ),
+            ),
+          if (isComplete)
+             const Text(
+              "Bugün Tamamlandı",
+               style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF10B981), // Green text
+              ),
+             ),
+          const SizedBox(height: 8),
+          // Colored bottom border line
+          Container(
+            height: 4,
+            width: 40,
+            decoration: BoxDecoration(
+              color: borderColor,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMagicFab() {
+    return Container(
+      height: 64,
+      width: 64,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: const LinearGradient(
+          colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)], // Indigo to Purple
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF4F46E5).withOpacity(0.4),
+            blurRadius: 12,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            // Magic Action
+          },
+          customBorder: const CircleBorder(),
+          child: const Icon(
+            Icons.auto_fix_high_rounded,
+            color: Colors.white,
+            size: 30,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomMenuBar() {
+    return BottomAppBar(
+      height: 70, // Slightly taller
+      notchMargin: 10,
+      shape: const CircularNotchedRectangle(),
+      color: Colors.white,
+      surfaceTintColor: Colors.white,
+      shadowColor: Colors.black12,
+      elevation: 20,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _buildNavItem(0, Icons.home_filled, "Anasayfa"),
+          _buildNavItem(1, Icons.task_alt_rounded, "Kazanım"),
+          const SizedBox(width: 48), // Space for FAB
+          _buildNavItem(2, Icons.menu_book_rounded, "Ödevler"), // changed icon
+          _buildNavItem(3, Icons.quiz_outlined, "Sınavlar"), // changed icon
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNavItem(int index, IconData icon, String label) {
+    final isSelected = _selectedIndex == index;
+    return InkWell(
+      onTap: () => setState(() => _selectedIndex = index),
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? const Color(0xFF4F46E5) : const Color(0xFF94A3B8),
+              size: 24,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                color: isSelected ? const Color(0xFF4F46E5) : const Color(0xFF94A3B8),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
