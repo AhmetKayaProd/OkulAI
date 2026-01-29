@@ -26,9 +26,6 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
   bool _isLoading = true;
   String? _classId;
 
-  // Bottom Nav Index
-  int _selectedIndex = 0;
-
   @override
   void initState() {
     super.initState();
@@ -54,27 +51,20 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF1F5F9), // Slightly cooler background
-      body: SafeArea(
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildHeader(),
-                    const SizedBox(height: 32),
-                    _buildOverviewSection(),
-                  ],
-                ),
-              ),
-      ),
-      floatingActionButton: _buildMagicFab(),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: _buildBottomMenuBar(),
-    );
+    // No Scaffold here - handled by TeacherShell
+    return _isLoading
+        ? const Center(child: CircularProgressIndicator())
+        : SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(),
+                const SizedBox(height: 32),
+                _buildOverviewSection(),
+              ],
+            ),
+          );
   }
 
   Widget _buildHeader() {
@@ -283,94 +273,6 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildMagicFab() {
-    return Container(
-      height: 64,
-      width: 64,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: const LinearGradient(
-          colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)], // Indigo to Purple
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF4F46E5).withOpacity(0.4),
-            blurRadius: 12,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            // Magic Action
-          },
-          customBorder: const CircleBorder(),
-          child: const Icon(
-            Icons.auto_fix_high_rounded,
-            color: Colors.white,
-            size: 30,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomMenuBar() {
-    return BottomAppBar(
-      height: 70, // Slightly taller
-      notchMargin: 10,
-      shape: const CircularNotchedRectangle(),
-      color: Colors.white,
-      surfaceTintColor: Colors.white,
-      shadowColor: Colors.black12,
-      elevation: 20,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildNavItem(0, Icons.home_filled, "Anasayfa"),
-          _buildNavItem(1, Icons.task_alt_rounded, "Kazanım"),
-          const SizedBox(width: 48), // Space for FAB
-          _buildNavItem(2, Icons.menu_book_rounded, "Ödevler"), // changed icon
-          _buildNavItem(3, Icons.quiz_outlined, "Sınavlar"), // changed icon
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavItem(int index, IconData icon, String label) {
-    final isSelected = _selectedIndex == index;
-    return InkWell(
-      onTap: () => setState(() => _selectedIndex = index),
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              color: isSelected ? const Color(0xFF4F46E5) : const Color(0xFF94A3B8),
-              size: 24,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                color: isSelected ? const Color(0xFF4F46E5) : const Color(0xFF94A3B8),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

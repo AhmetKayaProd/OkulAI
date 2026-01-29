@@ -1,23 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:kresai/screens/teacher_screens.dart';
-import 'package:kresai/screens/teacher/parent_code_screen.dart';
-import 'package:kresai/screens/teacher/parent_approvals_screen.dart';
-import 'package:kresai/screens/teacher/share_screen.dart';
-import 'package:kresai/screens/teacher/daily_log_screen.dart';
-import 'package:kresai/screens/teacher/live_screen.dart';
-import 'package:kresai/screens/teacher/program_upload_screen.dart';
-import 'package:kresai/screens/teacher/today_plan_screen.dart';
-import 'package:kresai/screens/teacher/ai_settings_screen.dart';
-import 'package:kresai/screens/teacher/settings_screen.dart';
+import 'package:kresai/screens/teacher/home_screen.dart'; // The new dashboard content
 import 'package:kresai/screens/teacher/homework_management_screen.dart'; // ÖdevAI
 import 'package:kresai/screens/teacher/exam_management_screen.dart'; // SınavAI
-import 'package:kresai/services/notification_store.dart';
-import 'package:kresai/services/registration_store.dart';
-import 'package:kresai/models/notification_item.dart';
-import 'package:kresai/screens/common/notification_list_screen.dart';
 
-/// Teacher Shell - 5 Tab Bottom Navigation
-/// Bugün, Akış, ÖdevAI, Duyuru, Mesajlar
+// Placeholder for Kazanım Screen (Temporary)
+class TeacherAchievementsScreen extends StatelessWidget {
+  const TeacherAchievementsScreen({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(child: Text("Kazanım Ekranı (Yakında)")),
+    );
+  }
+}
+
+/// Teacher Shell - New Design Implementation
+/// Anasayfa, Kazanım, [FAB], Ödevler, Sınavlar
 class TeacherShell extends StatefulWidget {
   const TeacherShell({super.key});
 
@@ -27,261 +26,140 @@ class TeacherShell extends StatefulWidget {
 
 class _TeacherShellState extends State<TeacherShell> {
   int _currentIndex = 0;
-  final _notificationStore = NotificationStore();
-  final _registrationStore = RegistrationStore();
-  int _unreadCount = 0;
 
-  @override
-  void initState() {
-    super.initState();
-    _loadUnreadCount();
-  }
-
-  Future<void> _loadUnreadCount() async {
-    await _notificationStore.load();
-    await _registrationStore.load();
-    
-    final registration = _registrationStore.getCurrentTeacherRegistration();
-    if (registration != null && mounted) {
-      setState(() {
-        _unreadCount = _notificationStore.unreadCount(
-          targetRole: 'teacher',
-          targetId: registration.id,
-        );
-      });
-    }
-  }
-
-  final _feedScreenKey = GlobalKey<TeacherFeedScreenState>();
-
+  // The simplified screens list for the new design
   late final List<Widget> _screens = [
-    const TeacherDailyLogScreen(), // Bugün yerine Günlük
-    TeacherFeedScreen(key: _feedScreenKey),
-    const TeacherLiveScreen(), // Canlı
-    const TeacherAnnouncementsScreen(),
-    const TeacherMessagesScreen(),
+    const TeacherHomeScreen(),           // Index 0: Anasayfa (New Dashboard)
+    const TeacherAchievementsScreen(),     // Index 1: Kazanım
+    const HomeworkManagementScreen(),      // Index 2: Ödevler
+    const ExamManagementScreen(),          // Index 3: Sınavlar
   ];
 
-  void _showAiProgramMenu(BuildContext context) {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF1F5F9), // Background matching home screen
+      // No AppBar for Dashboard (Index 0) because it has its own custom header
+      // For others, we might want one, but sticking to design request for now.
+      body: SafeArea(
+        bottom: false,
+        child: IndexedStack(
+          index: _currentIndex,
+          children: _screens,
+        ),
+      ),
+      floatingActionButton: _buildMagicFab(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      bottomNavigationBar: _buildBottomMenuBar(),
+    );
+  }
+
+  Widget _buildMagicFab() {
+    return Container(
+      height: 64,
+      width: 64,
+      margin: const EdgeInsets.only(top: 24), // Push it slightly up from bottom bar if needed
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: const LinearGradient(
+          colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)], // Indigo to Purple
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF4F46E5).withOpacity(0.4),
+            blurRadius: 12,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            // Magic Action - Could be "Create New" menu or AI Assistant
+            _showMagicMenu(context);
+          },
+          customBorder: const CircleBorder(),
+          child: const Icon(
+            Icons.auto_fix_high_rounded,
+            color: Colors.white,
+            size: 30,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showMagicMenu(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      builder: (context) => SafeArea(
-        child: Column(
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        child: const Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // SınavAI - NEW!
-            ListTile(
-              leading: const Icon(Icons.quiz, color: Colors.blue),
-              title: const Text('SınavAI'),
-              subtitle: const Text('AI destekli sınav oluştur ve yönet'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const ExamManagementScreen(),
-                  ),
-                );
-              },
-            ),
-            // ÖdevAI - Placeholder (not implemented yet)
-            ListTile(
-              leading: const Icon(Icons.assignment, color: Colors.orange),
-              title: const Text('ÖdevAI'),
-              subtitle: const Text('AI destekli ödev oluştur ve yönet'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const HomeworkManagementScreen(),
-                  ),
-                );
-              },
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.upload_file),
-              title: const Text('Program Yükle'),
-              subtitle: const Text('Haftalık/Aylık program yükle'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const ProgramUploadScreen(),
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.today),
-              title: const Text('Bugünkü Plan'),
-              subtitle: const Text('Günlük planı görüntüle/onayla'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const TodayPlanScreen(),
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text('AI Ayarları'),
-              subtitle: const Text('Gemini API key ayarla'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const AiSettingsScreen(),
-                  ),
-                );
-              },
-            ),
+            Text("Sihirli İşlemler", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            SizedBox(height: 16),
+            ListTile(leading: Icon(Icons.auto_awesome), title: Text("AI ile Ödev Oluştur")),
+            ListTile(leading: Icon(Icons.quiz), title: Text("Sınav Hazırla")),
+            ListTile(leading: Icon(Icons.notifications), title: Text("Duyuru Gönder")),
           ],
         ),
       ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: _currentIndex == 0
-          ? AppBar(
-              title: const Text('Bugün'),
-              actions: [
-                IconButton(
-                  icon: Badge(
-                    isLabelVisible: _unreadCount > 0,
-                    label: Text(_unreadCount.toString()),
-                    child: const Icon(Icons.notifications),
-                  ),
-                  tooltip: 'Bildirimler',
-                  onPressed: () async {
-                    final registration = _registrationStore.getCurrentTeacherRegistration();
-                    if (registration != null) {
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => NotificationListScreen(
-                            role: 'teacher',
-                            targetId: registration.id,
-                          ),
-                        ),
-                      );
-                      _loadUnreadCount(); // Reload after returning
-                    }
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.how_to_reg),
-                  tooltip: 'Veli Onayları',
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const TeacherParentApprovalsScreen(),
-                      ),
-                    );
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.vpn_key),
-                  tooltip: 'Veli Kodu',
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const TeacherParentCodeScreen(),
-                      ),
-                    );
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.auto_awesome),
-                  tooltip: 'AI Program',
-                  onPressed: () => _showAiProgramMenu(context),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.settings),
-                  tooltip: 'Ayarlar',
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const TeacherSettingsScreen(),
-                      ),
-                    );
-                  },
-                ),
-              ],
-            )
-          : _currentIndex == 1  // Feed tab
-              ? AppBar(
-                  title: const Text('Akış'),
-                  actions: [
-                    IconButton(
-                      icon: const Icon(Icons.add_circle_outline),
-                      tooltip: 'Paylaş',
-                      onPressed: () async {
-                        final result = await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const TeacherShareScreen(),
-                          ),
-                        );
-                        if (result == true && mounted) {
-                          // Feed refresh için direkt refreshFeed çağır
-                          _feedScreenKey.currentState?.refreshFeed();
-                        }
-                      },
-                    ),
-                  ],
-                )
-              : null,
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.today_outlined),
-            selectedIcon: Icon(Icons.today),
-            label: 'Bugün',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.dynamic_feed_outlined),
-            selectedIcon: Icon(Icons.dynamic_feed),
-            label: 'Akış',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.videocam_outlined),
-            selectedIcon: Icon(Icons.videocam),
-            label: 'Canlı',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.campaign_outlined),
-            selectedIcon: Icon(Icons.campaign),
-            label: 'Duyuru',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.message_outlined),
-            selectedIcon: Icon(Icons.message),
-            label: 'Mesajlar',
-          ),
+  Widget _buildBottomMenuBar() {
+    return BottomAppBar(
+      height: 70, 
+      notchMargin: 10,
+      shape: const CircularNotchedRectangle(),
+      color: Colors.white,
+      surfaceTintColor: Colors.white,
+      shadowColor: Colors.black12,
+      elevation: 20,
+      padding: EdgeInsets.zero, // Important to control padding manually
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _buildNavItem(0, Icons.home_filled, "Anasayfa"),
+          _buildNavItem(1, Icons.task_alt_rounded, "Kazanım"),
+          const SizedBox(width: 48), // Space for FAB
+          _buildNavItem(2, Icons.menu_book_rounded, "Ödevler"), 
+          _buildNavItem(3, Icons.quiz_outlined, "Sınavlar"), 
         ],
+      ),
+    );
+  }
+
+  Widget _buildNavItem(int index, IconData icon, String label) {
+    final isSelected = _currentIndex == index;
+    return Expanded(
+      child: InkWell(
+        onTap: () => setState(() => _currentIndex = index),
+        borderRadius: BorderRadius.circular(12),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center, // Center vertically
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? const Color(0xFF4F46E5) : const Color(0xFF94A3B8),
+              size: 24,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                color: isSelected ? const Color(0xFF4F46E5) : const Color(0xFF94A3B8),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
